@@ -530,8 +530,8 @@ export class SettingsComponent implements OnInit {
       )
       .subscribe({
         next: (res: ApiResponse<SystemSetting[]>) => {
-          this.generalSettings.set(res.data);
-          this.buildGeneralForm(res.data);
+          this.generalSettings.set(res.data!);
+          this.buildGeneralForm(res.data!);
         },
         error: () => {
           this.snackBar.open('Error al cargar configuración general', 'Cerrar', { duration: 5000 });
@@ -550,8 +550,8 @@ export class SettingsComponent implements OnInit {
       )
       .subscribe({
         next: (res: ApiResponse<SystemSetting[]>) => {
-          this.generalSettings.set(res.data);
-          this.buildGeneralForm(res.data);
+          this.generalSettings.set(res.data!);
+          this.buildGeneralForm(res.data!);
         },
         error: () => {
           this.snackBar.open('Error al cargar configuración general', 'Cerrar', { duration: 5000 });
@@ -571,9 +571,9 @@ export class SettingsComponent implements OnInit {
       .subscribe({
         next: (res: ApiResponse<NotificationConfig>) => {
           this.notificationForm.setValue({
-            emailEnabled: res.data.emailEnabled,
-            smsEnabled: res.data.smsEnabled,
-            pushEnabled: res.data.pushEnabled,
+            emailEnabled: res.data!.emailEnabled,
+            smsEnabled: res.data!.smsEnabled,
+            pushEnabled: res.data!.pushEnabled,
           });
           this.notificationForm.markAsPristine();
         },
@@ -595,10 +595,10 @@ export class SettingsComponent implements OnInit {
       .subscribe({
         next: (res: ApiResponse<SecurityConfig>) => {
           this.securityForm.setValue({
-            maxLoginAttempts: res.data.maxLoginAttempts,
-            sessionTimeout: res.data.sessionTimeout,
-            passwordMinLength: res.data.passwordMinLength,
-            requireMfa: res.data.requireMfa,
+            maxLoginAttempts: res.data!.maxLoginAttempts,
+            sessionTimeout: res.data!.sessionTimeout,
+            passwordMinLength: res.data!.passwordMinLength,
+            requireMfa: res.data!.requireMfa,
           });
           this.securityForm.markAsPristine();
         },
@@ -620,9 +620,9 @@ export class SettingsComponent implements OnInit {
       .subscribe({
         next: (res: ApiResponse<AuthConfig>) => {
           this.authForm.setValue({
-            jwtSecret: res.data.jwtSecret,
-            jwtExpiration: res.data.jwtExpiration,
-            refreshTokenExpiration: res.data.refreshTokenExpiration,
+            jwtSecret: res.data!.jwtSecret,
+            jwtExpiration: res.data!.jwtExpiration,
+            refreshTokenExpiration: res.data!.refreshTokenExpiration,
           });
           this.authForm.markAsPristine();
         },

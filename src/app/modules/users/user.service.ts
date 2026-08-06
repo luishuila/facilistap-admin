@@ -2,75 +2,41 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiBaseService } from '../../core/services/api-base.service';
 import { User } from '../../core/models/user.interface';
-import { Audit } from '../../core/models/audit.interface';
-import {
-  ApiResponse,
-  PaginatedResponse,
-} from '../../core/models/api-response.interface';
+import { ApiResponse, PaginatedResponse } from '../../core/models/api-response.interface';
 import { PaginatedQuery } from '../../core/models/paginated-query.interface';
 
 @Injectable({ providedIn: 'root' })
 export class UserService extends ApiBaseService {
-  private readonly endpoint = 'admin/users';
+  private readonly endpoint = 'admin';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<User>> {
-    return this._getPaginated<User>(this.endpoint, query);
+    return this._getPaginated<User>(`${this.endpoint}/users`, query);
   }
-
-  getById(id: number): Observable<ApiResponse<User>> {
-    return this._getById<User>(this.endpoint, id);
+  getById(id: string): Observable<ApiResponse<User>> {
+    return this._getById<User>(`${this.endpoint}/users`, id);
   }
-
   create(data: Partial<User>): Observable<ApiResponse<User>> {
-    return this._create<User>(this.endpoint, data);
+    return this._create<User>(`${this.endpoint}/users`, data);
   }
-
-  update(id: number, data: Partial<User>): Observable<ApiResponse<User>> {
-    return this._update<User>(this.endpoint, id, data);
+  update(id: string, data: Partial<User>): Observable<ApiResponse<User>> {
+    return this._update<User>(`${this.endpoint}/users`, id, data);
   }
-
-  delete(id: number): Observable<ApiResponse<void>> {
-    return this._delete<void>(this.endpoint, id);
+  delete(id: string): Observable<ApiResponse<void>> {
+    return this._delete<void>(`${this.endpoint}/users`, id);
   }
-
-  activate(id: number): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/activate`,
-      {}
-    );
+  activate(id: string): Observable<ApiResponse<void>> {
+    return this.http.patch<ApiResponse<void>>(`${this.baseUrl}/${this.endpoint}/users/${id}`, { isActive: true });
   }
-
-  block(id: number): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/block`,
-      {}
-    );
+  block(id: string): Observable<ApiResponse<void>> {
+    return this.http.patch<ApiResponse<void>>(`${this.baseUrl}/${this.endpoint}/users/${id}`, { isBlocked: true });
   }
-
-  unblock(id: number): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/unblock`,
-      {}
-    );
+  unblock(id: string): Observable<ApiResponse<void>> {
+    return this.http.patch<ApiResponse<void>>(`${this.baseUrl}/${this.endpoint}/users/${id}`, { isBlocked: false });
   }
-
-  changeRole(id: number, roleId: number): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/change-role`,
-      { roleId }
-    );
+  changeRole(id: string, roleId: number): Observable<ApiResponse<void>> {
+    return this.http.patch<ApiResponse<void>>(`${this.baseUrl}/${this.endpoint}/users/${id}`, { roles: [{ idRol: roleId }] });
   }
-
-  resetPassword(id: number): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/reset-password`,
-      {}
-    );
-  }
-
-  getHistory(id: number): Observable<ApiResponse<Audit[]>> {
-    return this.http.get<ApiResponse<Audit[]>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/history`
-    );
+  resetPassword(id: string): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/auth/password/reset`, { userId: id });
   }
 }

@@ -66,8 +66,8 @@ interface NavItem {
           </div>
           @if (!sidebarCollapsed()) {
             <div class="user-details">
-              <span class="user-name">{{ currentUser()?.username ?? 'Usuario' }}</span>
-              <span class="user-role">{{ currentUser()?.roleName ?? 'Sin rol' }}</span>
+              <span class="user-name">{{ (currentUser()?.name ?? '') + ' ' + (currentUser()?.lastname ?? '') }}</span>
+              <span class="user-role">{{ currentUser()?.roles?.[0]?.name ?? 'Sin rol' }}</span>
             </div>
           }
         </div>
@@ -165,7 +165,7 @@ interface NavItem {
             </button>
             <mat-menu #userMenu="matMenu" xPosition="before">
               <div class="user-menu-header">
-                <span class="user-menu-name">{{ currentUser()?.username ?? 'Usuario' }}</span>
+                <span class="user-menu-name">{{ currentUser()?.name ?? 'Usuario' }}</span>
                 <span class="user-menu-email">{{ currentUser()?.username ?? '' }}</span>
               </div>
               <mat-divider></mat-divider>
@@ -588,9 +588,9 @@ export class MainLayoutComponent implements OnInit {
   ];
 
   protected readonly userInitials = computed(() => {
-    const username = this.currentUser()?.username;
-    if (!username) return 'U';
-    return username.charAt(0).toUpperCase();
+    const name = this.currentUser()?.name;
+    if (!name) return 'U';
+    return name.charAt(0).toUpperCase();
   });
 
   ngOnInit(): void {

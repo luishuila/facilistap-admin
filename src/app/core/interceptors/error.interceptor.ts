@@ -19,12 +19,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       let message = ERROR_MESSAGES[error.status] ?? 'An unexpected error occurred.';
 
       if (error.error && typeof error.error === 'object') {
-        const apiError = error.error as Partial<ApiResponse>;
-        if (apiError.message) {
-          message = apiError.message;
-        }
-        if (apiError.errors && apiError.errors.length > 0) {
-          message = apiError.errors.join(', ');
+        const apiError = error.error as Record<string, unknown>;
+        if (typeof apiError['message'] === 'string') {
+          message = apiError['message'] as string;
         }
       }
 

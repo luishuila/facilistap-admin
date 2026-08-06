@@ -53,7 +53,7 @@ export interface UserChangeRoleDialogData {
           <div class="header-text">
             <h2 class="dialog-title">Cambiar Rol</h2>
             <p class="dialog-subtitle">
-              Asigne un nuevo rol al usuario <strong>{{ data.user.fullName }}</strong>
+              Asigne un nuevo rol al usuario <strong>{{ data.user.name }} {{ data.user.lastname }}</strong>
             </p>
           </div>
         </div>

@@ -382,7 +382,7 @@ export class RolePermissionsComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.selectedPermissionIds.clear();
-          res.data.forEach((perm) => this.selectedPermissionIds.add(perm.id));
+          (res.data ?? []).forEach((perm: any) => this.selectedPermissionIds.add(perm.id));
         },
         error: () => {
           this.snackBar.open('Error al cargar permisos del rol', 'Cerrar', {

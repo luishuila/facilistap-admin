@@ -118,9 +118,10 @@ export class SubcategoryListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.categories.set(res.items);
+          this.categories.set(res?.items ?? []);
         },
         error: () => {
+          this.categories.set([]);
           this.snackBar.open('Error al cargar categorías', 'Cerrar', {
             duration: 5000,
           });
@@ -142,10 +143,12 @@ export class SubcategoryListComponent implements OnInit {
         )
         .subscribe({
           next: (res) => {
-            this.subcategories.set(res.data);
-            this.totalItems.set(res.data.length);
+            this.subcategories.set(res?.data ?? []);
+            this.totalItems.set(res?.data?.length ?? 0);
           },
           error: () => {
+            this.subcategories.set([]);
+            this.totalItems.set(0);
             this.snackBar.open('Error al cargar subcategorías', 'Cerrar', {
               duration: 5000,
             });
@@ -166,10 +169,12 @@ export class SubcategoryListComponent implements OnInit {
         )
         .subscribe({
           next: (res) => {
-            this.subcategories.set(res.items);
-            this.totalItems.set(res.total);
+            this.subcategories.set(res?.items ?? []);
+            this.totalItems.set(res?.total ?? 0);
           },
           error: () => {
+            this.subcategories.set([]);
+            this.totalItems.set(0);
             this.snackBar.open('Error al cargar subcategorías', 'Cerrar', {
               duration: 5000,
             });

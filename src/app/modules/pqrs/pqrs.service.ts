@@ -2,73 +2,44 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiBaseService } from '../../core/services/api-base.service';
 import { PQRS, PqrsResponse, PqrsFile } from '../../core/models/pqrs.interface';
-import {
-  ApiResponse,
-  PaginatedResponse,
-} from '../../core/models/api-response.interface';
+import { ApiResponse, PaginatedResponse } from '../../core/models/api-response.interface';
 import { PaginatedQuery } from '../../core/models/paginated-query.interface';
 
 @Injectable({ providedIn: 'root' })
 export class PqrsService extends ApiBaseService {
-  private readonly endpoint = 'admin/pqrs';
+  private readonly endpoint = 'admin';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<PQRS>> {
-    return this._getPaginated<PQRS>(this.endpoint, query);
+    return this._getPaginated<PQRS>(`${this.endpoint}/complaints`, query);
   }
-
   getById(id: number): Observable<ApiResponse<PQRS>> {
-    return this._getById<PQRS>(this.endpoint, id);
+    return this._getById<PQRS>(`${this.endpoint}/complaints`, id);
   }
-
   create(data: Partial<PQRS>): Observable<ApiResponse<PQRS>> {
-    return this._create<PQRS>(this.endpoint, data);
+    return this._create<PQRS>(`${this.endpoint}/complaints`, data);
   }
-
   update(id: number, data: Partial<PQRS>): Observable<ApiResponse<PQRS>> {
-    return this._update<PQRS>(this.endpoint, id, data);
+    return this._patch<PQRS>(`${this.endpoint}/complaints`, id, data);
   }
-
   delete(id: number): Observable<ApiResponse<void>> {
-    return this._delete<void>(this.endpoint, id);
+    return this._delete<void>(`${this.endpoint}/complaints`, id);
   }
-
-  changeStatus(id: number, status: string): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/status`,
-      { status }
-    );
+  respond(id: number, note: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/${this.endpoint}/complaints/${id}/notes`, { note });
   }
-
-  assign(id: number, userId: number): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/assign`,
-      { userId }
-    );
+  changeStatus(id: number, status: string): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/${this.endpoint}/complaints/${id}`, { status });
   }
-
-  respond(id: number, response: string): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/respond`,
-      { response }
-    );
+  assign(id: number, userId: number): Observable<any> {
+    return this.http.patch<any>(`${this.baseUrl}/${this.endpoint}/complaints/${id}`, { assignedTo: userId });
   }
-
-  uploadFile(id: number, formData: FormData): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/upload`,
-      formData
-    );
+  uploadFile(id: number, formData: FormData): Observable<any> {
+    return this.http.post(`${this.baseUrl}/${this.endpoint}/complaints/${id}/upload`, formData);
   }
-
-  getResponses(id: number): Observable<ApiResponse<PqrsResponse[]>> {
-    return this.http.get<ApiResponse<PqrsResponse[]>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/responses`
-    );
+  getResponses(id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/${this.endpoint}/complaints/${id}/notes`);
   }
-
-  getFiles(id: number): Observable<ApiResponse<PqrsFile[]>> {
-    return this.http.get<ApiResponse<PqrsFile[]>>(
-      `${this.baseUrl}/${this.endpoint}/${id}/files`
-    );
+  getFiles(id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/${this.endpoint}/complaints/${id}/files`);
   }
 }

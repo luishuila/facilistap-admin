@@ -427,7 +427,7 @@ export class DataTableComponent<T> implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['data']) {
-      this.dataSource.data = this.data;
+      this.dataSource.data = this.data ?? [];
     }
     this.syncInputs();
   }
@@ -450,7 +450,7 @@ export class DataTableComponent<T> implements OnInit, OnChanges {
       sortActive: this.sortActive(),
       sortDirection: this.sortDirection(),
     }));
-    this.dataSource.data = this.data;
+    this.dataSource.data = this.data ?? [];
   }
 
   private readonly _sortActive = signal('');

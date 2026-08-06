@@ -277,10 +277,12 @@ export class UserListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.users.set(res.items);
-          this.totalItems.set(res.total);
+          this.users.set(res?.items ?? []);
+          this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
+          this.users.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar usuarios', 'Cerrar', {
             duration: 5000,
             panelClass: 'snackbar-error',
@@ -294,7 +296,7 @@ export class UserListComponent implements OnInit {
       .getAll({ limit: 100 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => this.roles.set(res.items),
+        next: (res) => this.roles.set(res?.items ?? []),
         error: () => {},
       });
   }
@@ -418,7 +420,7 @@ export class UserListComponent implements OnInit {
     this.confirmDialog
       .confirm({
         title: 'Eliminar Usuario',
-        message: `¿Está seguro de eliminar al usuario "${user.fullName}"? Esta acción no se puede deshacer.`,
+        message: `¿Está seguro de eliminar al usuario "${this.userDisplayName(user)}"? Esta acción no se puede deshacer.`,
         confirmText: 'Eliminar',
         icon: 'delete_forever',
         color: '#ef4444',
@@ -452,7 +454,7 @@ export class UserListComponent implements OnInit {
     this.confirmDialog
       .confirm({
         title: 'Bloquear Usuario',
-        message: `¿Está seguro de bloquear al usuario "${user.fullName}"? No podrá acceder al sistema.`,
+        message: `¿Está seguro de bloquear al usuario "${this.userDisplayName(user)}"? No podrá acceder al sistema.`,
         confirmText: 'Bloquear',
         icon: 'block',
         color: '#f59e0b',
@@ -486,7 +488,7 @@ export class UserListComponent implements OnInit {
     this.confirmDialog
       .confirm({
         title: 'Desbloquear Usuario',
-        message: `¿Está seguro de desbloquear al usuario "${user.fullName}"?`,
+        message: `¿Está seguro de desbloquear al usuario "${this.userDisplayName(user)}"?`,
         confirmText: 'Desbloquear',
         icon: 'lock_open',
         color: '#22c55e',
@@ -535,5 +537,9 @@ export class UserListComponent implements OnInit {
           });
         },
       });
+  }
+
+  private userDisplayName(user: User): string {
+    return [user.name, user.lastname].filter(Boolean).join(' ') || user.username;
   }
 }

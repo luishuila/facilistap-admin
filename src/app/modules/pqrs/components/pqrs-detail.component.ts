@@ -571,7 +571,8 @@ export class PqrsDetailComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          const item = res.data;
+          const item = res.data!;
+          if (!item) return;
           this.pqrs.set(item);
           this.responses.set(item.responses || []);
           this.files.set(item.files || []);

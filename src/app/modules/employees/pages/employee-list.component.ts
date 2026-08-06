@@ -114,10 +114,12 @@ export class EmployeeListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.employees.set(res.items);
-          this.totalItems.set(res.total);
+          this.employees.set(res?.items ?? []);
+          this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
+          this.employees.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar empleados', 'Cerrar', {
             duration: 5000,
           });

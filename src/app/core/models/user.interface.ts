@@ -1,17 +1,27 @@
+export interface UserRole {
+  idRol: number;
+  name: string;
+  role: string;
+}
+
 export interface User {
-  id: number;
+  id: string;
+  name: string;
   username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  roleId: number;
-  roleName: string;
-  isActive: boolean;
-  isBlocked: boolean;
-  lastLogin: string | null;
-  avatarUrl: string | null;
-  phone: string | null;
-  createdAt: string;
-  updatedAt: string;
+  lastname: string;
+  uiid: string;
+  img: string;
+  email?: string;
+  phone?: string;
+  roles: UserRole[];
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  roleName?: string;
+  roleId?: number;
+  isActive?: boolean;
+  isBlocked?: boolean;
+  lastLogin?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

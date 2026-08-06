@@ -1,22 +1,34 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiBaseService } from '../../core/services/api-base.service';
-import { DashboardStats, Activity } from '../../core/models/dashboard.interface';
-import { ApiResponse } from '../../core/models/api-response.interface';
+
+interface NestResponse<T = unknown> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data?: T;
+}
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService extends ApiBaseService {
   private readonly endpoint = 'admin/dashboard';
 
-  getStats(): Observable<ApiResponse<DashboardStats>> {
-    return this.http.get<ApiResponse<DashboardStats>>(`${this.baseUrl}/${this.endpoint}/stats`);
+  getKpis(): Observable<any> {
+    return this.http
+      .get<NestResponse<any>>(`${this.baseUrl}/${this.endpoint}/kpis`)
+      .pipe(map((res) => res.data));
   }
 
-  getCharts(): Observable<ApiResponse<unknown>> {
-    return this.http.get<ApiResponse<unknown>>(`${this.baseUrl}/${this.endpoint}/charts`);
+  getAlerts(): Observable<any[]> {
+    return this.http
+      .get<NestResponse<any>>(`${this.baseUrl}/${this.endpoint}/full`)
+      .pipe(map((res) => res.data?.alerts ?? []));
   }
 
-  getActivity(): Observable<ApiResponse<Activity[]>> {
-    return this.http.get<ApiResponse<Activity[]>>(`${this.baseUrl}/${this.endpoint}/activity`);
+  getFull(): Observable<any> {
+    return this.http
+      .get<NestResponse<any>>(`${this.baseUrl}/${this.endpoint}/full`)
+      .pipe(map((res) => res.data));
   }
 }

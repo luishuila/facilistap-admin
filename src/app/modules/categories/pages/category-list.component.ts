@@ -100,10 +100,12 @@ export class CategoryListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.categories.set(res.items);
-          this.totalItems.set(res.total);
+          this.categories.set(res?.items ?? []);
+          this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
+          this.categories.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar categorías', 'Cerrar', { duration: 5000 });
         },
       });

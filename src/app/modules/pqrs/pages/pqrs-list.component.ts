@@ -173,10 +173,12 @@ export class PqrsListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.pqrsList.set(res.items);
-          this.totalItems.set(res.total);
+          this.pqrsList.set(res?.items ?? []);
+          this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
+          this.pqrsList.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar PQRS', 'Cerrar', { duration: 5000 });
         },
       });

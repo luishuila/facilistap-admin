@@ -111,10 +111,12 @@ export class ProviderListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.providers.set(res.items);
-          this.totalItems.set(res.total);
+          this.providers.set(res?.items ?? []);
+          this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
+          this.providers.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar proveedores', 'Cerrar', {
             duration: 5000,
           });

@@ -1,11 +1,3 @@
-export interface Activity {
-  id: number;
-  description: string;
-  userId: number;
-  userName: string;
-  createdAt: string;
-}
-
 export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
@@ -14,7 +6,27 @@ export interface DashboardStats {
   totalEmployees: number;
   totalCategories: number;
   totalPqrs: number;
+  totalComplaints: number;
   pqrsByStatus: Record<string, number>;
+  complaintsByStatus: Record<string, number>;
   usersByRole: Record<string, number>;
-  recentActivity: Activity[];
+}
+
+export interface KpiData {
+  totalUsers: number;
+  activeUsers: number;
+  totalProviders: number;
+  totalEmployees: number;
+  totalCategories: number;
+  totalComplaints: number;
+  complaintsByStatus: Record<string, number>;
+  usersByRole: Record<string, number>;
+}
+
+export interface Activity {
+  id: number;
+  description: string;
+  userName: string;
+  type: string;
+  createdAt: string;
 }

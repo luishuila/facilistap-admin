@@ -129,27 +129,40 @@ export class DashboardComponent implements OnInit {
   private loadStats(): void {
     this.isStatsLoading.set(true);
     this.dashboardService
-      .getStats()
+      .getKpis()
       .pipe(finalize(() => this.isStatsLoading.set(false)))
       .subscribe({
-        next: (res) => {
-          const data = res.data;
-          this.stats.set(data);
-          this.buildBarChart(data.pqrsByStatus);
-          this.buildDoughnutChart(data.usersByRole);
+        next: (res: any) => {
+          const data = res;
+          const stats: DashboardStats = {
+            totalUsers: data.totalUsers ?? 0,
+            activeUsers: data.activeUsers ?? 0,
+            blockedUsers: data.blockedUsers ?? 0,
+            totalProviders: data.totalProviders ?? 0,
+            totalEmployees: data.totalEmployees ?? 0,
+            totalCategories: data.totalCategories ?? 0,
+            totalPqrs: data.totalComplaints ?? 0,
+            totalComplaints: data.totalComplaints ?? 0,
+            pqrsByStatus: data.complaintsByStatus ?? {},
+            complaintsByStatus: data.complaintsByStatus ?? {},
+            usersByRole: data.usersByRole ?? {},
+          };
+          this.stats.set(stats);
+          this.buildBarChart(stats.complaintsByStatus ?? {});
+          this.buildDoughnutChart(stats.usersByRole ?? {});
         },
-        error: (err) => console.error('Failed to load stats', err),
+        error: (err: unknown) => console.error('Failed to load stats', err),
       });
   }
 
   private loadActivity(): void {
     this.isActivityLoading.set(true);
     this.dashboardService
-      .getActivity()
+      .getAlerts()
       .pipe(finalize(() => this.isActivityLoading.set(false)))
       .subscribe({
-        next: (res) => this.activity.set(res.data ?? []),
-        error: (err) => console.error('Failed to load activity', err),
+        next: (res: any) => this.activity.set(res ?? []),
+        error: (err: unknown) => console.error('Failed to load activity', err),
       });
   }
 

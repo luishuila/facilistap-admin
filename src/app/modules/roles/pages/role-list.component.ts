@@ -208,14 +208,16 @@ export class RoleListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          const items = res.items.map((role) => ({
+          const items = (res?.items ?? []).map((role) => ({
             ...role,
             permissions: role.permissions?.length || 0,
           }));
           this.roles.set(items as unknown as Role[]);
-          this.totalItems.set(res.total);
+          this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
+          this.roles.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar roles', 'Cerrar', {
             duration: 5000,
             panelClass: 'snackbar-error',

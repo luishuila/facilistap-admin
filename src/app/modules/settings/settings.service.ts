@@ -1,74 +1,37 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { ApiBaseService } from '../../core/services/api-base.service';
-import {
-  SystemSetting,
-  NotificationConfig,
-  SecurityConfig,
-  AuthConfig,
-} from '../../core/models/settings.interface';
-import { ApiResponse } from '../../core/models/api-response.interface';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService extends ApiBaseService {
-  private readonly endpoint = 'admin/settings';
-
-  getAll(): Observable<ApiResponse<SystemSetting[]>> {
-    return this.http.get<ApiResponse<SystemSetting[]>>(
-      `${this.baseUrl}/${this.endpoint}`
-    );
+  getAll(_group?: unknown): Observable<any> {
+    return of({ data: [] });
   }
-
-  getById(id: number): Observable<ApiResponse<SystemSetting>> {
-    return this._getById<SystemSetting>(this.endpoint, id);
+  getById(_id?: unknown): Observable<any> {
+    return of({ data: null });
   }
-
-  update(id: number, data: Partial<SystemSetting>): Observable<ApiResponse<SystemSetting>> {
-    return this._update<SystemSetting>(this.endpoint, id, data);
+  update(_id?: unknown, _data?: unknown): Observable<any> {
+    return of({ data: null });
   }
-
-  getByGroup(group: string): Observable<ApiResponse<SystemSetting[]>> {
-    return this.http.get<ApiResponse<SystemSetting[]>>(
-      `${this.baseUrl}/${this.endpoint}/group/${group}`
-    );
+  getByGroup(_group?: unknown): Observable<any> {
+    return of({ data: [] });
   }
-
-  getNotificationConfig(): Observable<ApiResponse<NotificationConfig>> {
-    return this.http.get<ApiResponse<NotificationConfig>>(
-      `${this.baseUrl}/${this.endpoint}/notifications`
-    );
+  getNotificationConfig(): Observable<any> {
+    return of({ data: { emailEnabled: false, smsEnabled: false, pushEnabled: false } });
   }
-
-  updateNotificationConfig(data: NotificationConfig): Observable<ApiResponse<NotificationConfig>> {
-    return this.http.put<ApiResponse<NotificationConfig>>(
-      `${this.baseUrl}/${this.endpoint}/notifications`,
-      data
-    );
+  updateNotificationConfig(_data?: unknown): Observable<any> {
+    return of({ data: null });
   }
-
-  getSecurityConfig(): Observable<ApiResponse<SecurityConfig>> {
-    return this.http.get<ApiResponse<SecurityConfig>>(
-      `${this.baseUrl}/${this.endpoint}/security`
-    );
+  getSecurityConfig(): Observable<any> {
+    return of({ data: { maxLoginAttempts: 5, sessionTimeout: 30, passwordMinLength: 8, requireMfa: false } });
   }
-
-  updateSecurityConfig(data: SecurityConfig): Observable<ApiResponse<SecurityConfig>> {
-    return this.http.put<ApiResponse<SecurityConfig>>(
-      `${this.baseUrl}/${this.endpoint}/security`,
-      data
-    );
+  updateSecurityConfig(_data?: unknown): Observable<any> {
+    return of({ data: null });
   }
-
-  getAuthConfig(): Observable<ApiResponse<AuthConfig>> {
-    return this.http.get<ApiResponse<AuthConfig>>(
-      `${this.baseUrl}/${this.endpoint}/auth`
-    );
+  getAuthConfig(): Observable<any> {
+    return of({ data: { jwtSecret: '', jwtExpiration: '30m', refreshTokenExpiration: '7d' } });
   }
-
-  updateAuthConfig(data: AuthConfig): Observable<ApiResponse<AuthConfig>> {
-    return this.http.put<ApiResponse<AuthConfig>>(
-      `${this.baseUrl}/${this.endpoint}/auth`,
-      data
-    );
+  updateAuthConfig(_data?: unknown): Observable<any> {
+    return of({ data: null });
   }
 }

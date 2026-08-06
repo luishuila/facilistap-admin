@@ -140,12 +140,12 @@ export class PermissionListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.permissions.set(res.items);
-          this.totalItems.set(res.total);
+          this.permissions.set(res?.items ?? []);
+          this.totalItems.set(res?.total ?? 0);
 
           const dynamicModuleMap: Record<string, { label: string; color: string }> = {};
           const moduleColors = ['#6366f1', '#8b5cf6', '#06b6d4', '#14b8a6', '#f97316', '#ec4899'];
-          const allModules = [...new Set(res.items.map((p) => p.module))];
+          const allModules = [...new Set((res?.items ?? []).map((p) => p.module))];
           allModules.forEach((mod, i) => {
             dynamicModuleMap[mod] = {
               label: mod,
@@ -159,6 +159,8 @@ export class PermissionListComponent implements OnInit {
           }
         },
         error: () => {
+          this.permissions.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar permisos', 'Cerrar', { duration: 5000 });
         },
       });
@@ -170,7 +172,7 @@ export class PermissionListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          this.availableModules.set(res.data);
+          this.availableModules.set(res.data ?? []);
         },
       });
   }

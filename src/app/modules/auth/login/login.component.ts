@@ -50,8 +50,8 @@ import { AuthService } from '../../../core/services/auth.service';
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Usuario</mat-label>
                 <mat-icon matPrefix>person</mat-icon>
-                <input matInput formControlName="username" placeholder="Ingrese su usuario" autocomplete="username" />
-                <mat-error *ngIf="loginForm.get('username')?.hasError('required')">
+                <input matInput formControlName="users" placeholder="Ingrese su usuario" autocomplete="username" />
+                <mat-error *ngIf="loginForm.get('users')?.hasError('required')">
                   El usuario es requerido
                 </mat-error>
               </mat-form-field>
@@ -204,7 +204,7 @@ export class LoginComponent {
   protected readonly loading = signal(false);
 
   protected readonly loginForm: FormGroup = this.fb.group({
-    username: ['', [Validators.required]],
+    users: ['', [Validators.required]],
     password: ['', [Validators.required]],
   });
 

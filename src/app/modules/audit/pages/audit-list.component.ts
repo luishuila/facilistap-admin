@@ -357,10 +357,12 @@ export class AuditListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.auditEntries.set(res.items);
-          this.totalItems.set(res.total);
+          this.auditEntries.set(res?.items ?? []);
+          this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
+          this.auditEntries.set([]);
+          this.totalItems.set(0);
           this.snackBar.open('Error al cargar registros de auditoría', 'Cerrar', { duration: 5000 });
         },
       });

@@ -4,19 +4,24 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { ApiBaseService } from './api-base.service';
-import { User } from '../models/user.interface';
-import {
+import type { User } from '../models/user.interface';
+import type {
   LoginRequest,
   LoginResponse,
   RefreshTokenResponse,
   ChangePasswordRequest,
   ResetPasswordRequest,
 } from '../models/auth.interface';
-import { ApiResponse } from '../models/api-response.interface';
+
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data?: T;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService extends ApiBaseService {
-  private readonly AUTH_ENDPOINT = 'auth';
   private readonly TOKEN_KEY = 'access_token';
   private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly USER_KEY = 'current_user';
@@ -35,15 +40,15 @@ export class AuthService extends ApiBaseService {
   login(credentials: LoginRequest): Observable<ApiResponse<LoginResponse>> {
     return this.http
       .post<ApiResponse<LoginResponse>>(
-        `${this.baseUrl}/${this.AUTH_ENDPOINT}/login`,
+        `${this.baseUrl}/auth/login`,
         credentials
       )
       .pipe(
         map((response) => {
           if (response.success && response.data) {
             this.storeSession(
-              response.data.token,
-              response.data.refreshToken,
+              response.data.access_token,
+              response.data.refresh_token,
               response.data.user
             );
           }
@@ -54,7 +59,7 @@ export class AuthService extends ApiBaseService {
 
   logout(): Observable<ApiResponse<void>> {
     return this.http
-      .post<ApiResponse<void>>(`${this.baseUrl}/${this.AUTH_ENDPOINT}/logout`, {})
+      .post<ApiResponse<void>>(`${this.baseUrl}/auth/logout`, {})
       .pipe(tap(() => this.clearSession()));
   }
 
@@ -63,13 +68,16 @@ export class AuthService extends ApiBaseService {
     const refreshToken = storage?.getItem(this.REFRESH_TOKEN_KEY) ?? '';
     return this.http
       .post<ApiResponse<RefreshTokenResponse>>(
-        `${this.baseUrl}/${this.AUTH_ENDPOINT}/refresh`,
-        { refreshToken }
+        `${this.baseUrl}/auth/refresh`,
+        { refresh_token: refreshToken }
       )
       .pipe(
         map((response) => {
           if (response.success && response.data) {
-            this.storeTokens(response.data.token, response.data.refreshToken);
+            this.storeTokens(
+              response.data.access_token,
+              response.data.refresh_token
+            );
           }
           return response;
         })
@@ -78,21 +86,21 @@ export class AuthService extends ApiBaseService {
 
   changePassword(data: ChangePasswordRequest): Observable<ApiResponse<void>> {
     return this.http.post<ApiResponse<void>>(
-      `${this.baseUrl}/${this.AUTH_ENDPOINT}/change-password`,
+      `${this.baseUrl}/auth/password/change`,
       data
     );
   }
 
   resetPassword(data: ResetPasswordRequest): Observable<ApiResponse<void>> {
     return this.http.post<ApiResponse<void>>(
-      `${this.baseUrl}/${this.AUTH_ENDPOINT}/reset-password`,
+      `${this.baseUrl}/auth/password/reset`,
       data
     );
   }
 
   getProfile(): Observable<ApiResponse<User>> {
     return this.http
-      .get<ApiResponse<User>>(`${this.baseUrl}/${this.AUTH_ENDPOINT}/me`)
+      .get<ApiResponse<User>>(`${this.baseUrl}/auth/session/status`)
       .pipe(
         map((response) => {
           if (response.success && response.data) {
@@ -104,15 +112,13 @@ export class AuthService extends ApiBaseService {
   }
 
   isAuthenticated(): boolean {
-    const token = this.getToken();
-    if (!token) return false;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expiry = payload.exp * 1000;
-      return Date.now() < expiry;
-    } catch {
-      return false;
-    }
+    return !!this.getToken();
+  }
+
+  hasRole(role: string): boolean {
+    const user = this.getCurrentUser();
+    if (!user?.roles) return false;
+    return user.roles.some((r) => r.role === role || r.name === role);
   }
 
   hasPermission(permission: string): boolean {
@@ -127,17 +133,6 @@ export class AuthService extends ApiBaseService {
     }
   }
 
-  hasRole(role: string): boolean {
-    const token = this.getToken();
-    if (!token) return false;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.role === role;
-    } catch {
-      return false;
-    }
-  }
-
   getToken(): string | null {
     return this.getStorage()?.getItem(this.TOKEN_KEY) ?? null;
   }
@@ -146,20 +141,24 @@ export class AuthService extends ApiBaseService {
     return this.currentUserSubject.value;
   }
 
-  private storeSession(token: string, refreshToken: string, user: User): void {
+  private storeSession(
+    accessToken: string,
+    refreshToken: string,
+    user: User
+  ): void {
     const storage = this.getStorage();
     if (storage) {
-      storage.setItem(this.TOKEN_KEY, token);
+      storage.setItem(this.TOKEN_KEY, accessToken);
       storage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
       storage.setItem(this.USER_KEY, JSON.stringify(user));
     }
     this.currentUserSubject.next(user);
   }
 
-  private storeTokens(token: string, refreshToken: string): void {
+  private storeTokens(accessToken: string, refreshToken: string): void {
     const storage = this.getStorage();
     if (storage) {
-      storage.setItem(this.TOKEN_KEY, token);
+      storage.setItem(this.TOKEN_KEY, accessToken);
       storage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
     }
   }

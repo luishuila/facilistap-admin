@@ -3,55 +3,69 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, PaginatedResponse } from '../models/api-response.interface';
-import { PaginatedQuery } from '../models/paginated-query.interface';
+import type { ApiResponse, PaginatedResponse } from '../models/api-response.interface';
+import type { PaginatedQuery } from '../models/paginated-query.interface';
+
+interface NestResponse<T = unknown> {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data?: T;
+}
 
 @Injectable({ providedIn: 'root' })
 export abstract class ApiBaseService {
   protected http = inject(HttpClient);
-  protected baseUrl = `${environment.apiUrl}/${environment.apiVersion}`;
+  protected baseUrl = environment.apiUrl.replace(/\/$/, '');
 
   protected _getAll<T>(endpoint: string, params?: Record<string, unknown>): Observable<ApiResponse<T[]>> {
     const httpParams = this.buildHttpParams(params);
-    return this.http.get<ApiResponse<T[]>>(`${this.baseUrl}/${endpoint}`, { params: httpParams }).pipe(
-      catchError((error) => this.handleError(error))
+    return this.http.get<NestResponse<T[]>>(`${this.baseUrl}/${endpoint}`, { params: httpParams }).pipe(
+      map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
+      catchError((error) => this.handleError(error)),
     );
   }
 
   protected _getById<T>(endpoint: string, id: number | string): Observable<ApiResponse<T>> {
-    return this.http.get<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`).pipe(
-      catchError((error) => this.handleError(error))
+    return this.http.get<NestResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`).pipe(
+      map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
+      catchError((error) => this.handleError(error)),
     );
   }
 
   protected _search<T>(endpoint: string, params?: Record<string, unknown>): Observable<ApiResponse<T[]>> {
     const httpParams = this.buildHttpParams(params);
-    return this.http.get<ApiResponse<T[]>>(`${this.baseUrl}/${endpoint}/search`, { params: httpParams }).pipe(
-      catchError((error) => this.handleError(error))
+    return this.http.get<NestResponse<T[]>>(`${this.baseUrl}/${endpoint}/search`, { params: httpParams }).pipe(
+      map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
+      catchError((error) => this.handleError(error)),
     );
   }
 
-  protected _create<T>(endpoint: string, data: unknown): Observable<ApiResponse<T>> {
-    return this.http.post<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`, data).pipe(
-      catchError((error) => this.handleError(error))
+  protected _create<T>(endpoint: string, body: unknown): Observable<ApiResponse<T>> {
+    return this.http.post<NestResponse<T>>(`${this.baseUrl}/${endpoint}`, body).pipe(
+      map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
+      catchError((error) => this.handleError(error)),
     );
   }
 
-  protected _update<T>(endpoint: string, id: number | string, data: unknown): Observable<ApiResponse<T>> {
-    return this.http.put<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`, data).pipe(
-      catchError((error) => this.handleError(error))
+  protected _update<T>(endpoint: string, id: number | string, body: unknown): Observable<ApiResponse<T>> {
+    return this.http.put<NestResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`, body).pipe(
+      map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
+      catchError((error) => this.handleError(error)),
     );
   }
 
-  protected _patch<T>(endpoint: string, id: number | string, data: unknown): Observable<ApiResponse<T>> {
-    return this.http.patch<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`, data).pipe(
-      catchError((error) => this.handleError(error))
+  protected _patch<T>(endpoint: string, id: number | string, body: unknown): Observable<ApiResponse<T>> {
+    return this.http.patch<NestResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`, body).pipe(
+      map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
+      catchError((error) => this.handleError(error)),
     );
   }
 
   protected _delete<T>(endpoint: string, id: number | string): Observable<ApiResponse<T>> {
-    return this.http.delete<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`).pipe(
-      catchError((error) => this.handleError(error))
+    return this.http.delete<NestResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`).pipe(
+      map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
+      catchError((error) => this.handleError(error)),
     );
   }
 
@@ -60,12 +74,13 @@ export abstract class ApiBaseService {
       page: query.page ?? 1,
       limit: query.limit ?? 10,
       sortBy: query.sortBy,
-      sortOrder: query.sortOrder,
+      sortOrder: query.sortOrder?.toUpperCase(),
       search: query.search,
       ...(query.filters ?? {}),
     });
-    return this.http.get<PaginatedResponse<T>>(`${this.baseUrl}/${endpoint}`, { params }).pipe(
-      catchError((error) => this.handleError(error))
+    return this.http.get<NestResponse<PaginatedResponse<T>>>(`${this.baseUrl}/${endpoint}`, { params }).pipe(
+      map((res) => res.data ?? { items: [], total: 0, page: 1, limit: 10, totalPages: 0 }),
+      catchError((error) => this.handleError(error)),
     );
   }
 

@@ -42,7 +42,7 @@ Chart.register(
 const PQRS_STATUS_LABELS: Record<string, string> = {
   Pendiente: 'Pendiente',
   En_proceso: 'En proceso',
-  En proceso: 'En proceso',
+  'En proceso': 'En proceso',
   Respondido: 'Respondido',
   Cerrado: 'Cerrado',
   Rechazado: 'Rechazado',

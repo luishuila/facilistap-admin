@@ -13,11 +13,11 @@ export class AuditService extends ApiBaseService {
   private readonly endpoint = 'admin/audit';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<Audit>> {
-    return this.getPaginated<Audit>(this.endpoint, query);
+    return this._getPaginated<Audit>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<Audit>> {
-    return this.getById<Audit>(this.endpoint, id);
+    return this._getById<Audit>(this.endpoint, id);
   }
 
   export(query: PaginatedQuery): Observable<Blob> {

@@ -13,23 +13,23 @@ export class PermissionService extends ApiBaseService {
   private readonly endpoint = 'admin/permissions';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<Permission>> {
-    return this.getPaginated<Permission>(this.endpoint, query);
+    return this._getPaginated<Permission>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<Permission>> {
-    return this.getById<Permission>(this.endpoint, id);
+    return this._getById<Permission>(this.endpoint, id);
   }
 
   create(data: Partial<Permission>): Observable<ApiResponse<Permission>> {
-    return this.create<Permission>(this.endpoint, data);
+    return this._create<Permission>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<Permission>): Observable<ApiResponse<Permission>> {
-    return this.update<Permission>(this.endpoint, id, data);
+    return this._update<Permission>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
   getModules(): Observable<ApiResponse<string[]>> {

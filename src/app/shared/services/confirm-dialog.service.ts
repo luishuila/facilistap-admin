@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
+import { Observable, filter } from 'rxjs';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../components/confirm-dialog/confirm-dialog.component';
 
 export interface ConfirmOptions {
@@ -37,6 +37,8 @@ export class ConfirmDialogService {
       }
     );
 
-    return dialogRef.afterClosed();
+    return dialogRef.afterClosed().pipe(
+      filter((result): result is boolean => result !== undefined)
+    );
   }
 }

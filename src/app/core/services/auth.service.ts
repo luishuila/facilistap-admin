@@ -1,4 +1,5 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
@@ -20,49 +21,59 @@ export class AuthService extends ApiBaseService {
   private readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private readonly USER_KEY = 'current_user';
 
-  private currentUserSubject = new BehaviorSubject<User | null>(this.loadUserFromStorage());
+  private readonly platformId = inject(PLATFORM_ID);
+
+  private currentUserSubject = new BehaviorSubject<User | null>(
+    this.loadUserFromStorage()
+  );
   public readonly currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor() {
-    super();
+  private getStorage(): Storage | null {
+    return isPlatformBrowser(this.platformId) ? localStorage : null;
   }
 
   login(credentials: LoginRequest): Observable<ApiResponse<LoginResponse>> {
-    return this.http.post<ApiResponse<LoginResponse>>(
-      `${this.baseUrl}/${this.AUTH_ENDPOINT}/login`,
-      credentials
-    ).pipe(
-      map((response) => {
-        if (response.success && response.data) {
-          this.storeSession(response.data.token, response.data.refreshToken, response.data.user);
-        }
-        return response;
-      })
-    );
+    return this.http
+      .post<ApiResponse<LoginResponse>>(
+        `${this.baseUrl}/${this.AUTH_ENDPOINT}/login`,
+        credentials
+      )
+      .pipe(
+        map((response) => {
+          if (response.success && response.data) {
+            this.storeSession(
+              response.data.token,
+              response.data.refreshToken,
+              response.data.user
+            );
+          }
+          return response;
+        })
+      );
   }
 
   logout(): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(
-      `${this.baseUrl}/${this.AUTH_ENDPOINT}/logout`,
-      {}
-    ).pipe(
-      tap(() => this.clearSession())
-    );
+    return this.http
+      .post<ApiResponse<void>>(`${this.baseUrl}/${this.AUTH_ENDPOINT}/logout`, {})
+      .pipe(tap(() => this.clearSession()));
   }
 
   refreshToken(): Observable<ApiResponse<RefreshTokenResponse>> {
-    const refreshToken = localStorage.getItem(this.REFRESH_TOKEN_KEY);
-    return this.http.post<ApiResponse<RefreshTokenResponse>>(
-      `${this.baseUrl}/${this.AUTH_ENDPOINT}/refresh`,
-      { refreshToken }
-    ).pipe(
-      map((response) => {
-        if (response.success && response.data) {
-          this.storeTokens(response.data.token, response.data.refreshToken);
-        }
-        return response;
-      })
-    );
+    const storage = this.getStorage();
+    const refreshToken = storage?.getItem(this.REFRESH_TOKEN_KEY) ?? '';
+    return this.http
+      .post<ApiResponse<RefreshTokenResponse>>(
+        `${this.baseUrl}/${this.AUTH_ENDPOINT}/refresh`,
+        { refreshToken }
+      )
+      .pipe(
+        map((response) => {
+          if (response.success && response.data) {
+            this.storeTokens(response.data.token, response.data.refreshToken);
+          }
+          return response;
+        })
+      );
   }
 
   changePassword(data: ChangePasswordRequest): Observable<ApiResponse<void>> {
@@ -80,23 +91,21 @@ export class AuthService extends ApiBaseService {
   }
 
   getProfile(): Observable<ApiResponse<User>> {
-    return this.http.get<ApiResponse<User>>(
-      `${this.baseUrl}/${this.AUTH_ENDPOINT}/me`
-    ).pipe(
-      map((response) => {
-        if (response.success && response.data) {
-          this.setCurrentUser(response.data);
-        }
-        return response;
-      })
-    );
+    return this.http
+      .get<ApiResponse<User>>(`${this.baseUrl}/${this.AUTH_ENDPOINT}/me`)
+      .pipe(
+        map((response) => {
+          if (response.success && response.data) {
+            this.setCurrentUser(response.data);
+          }
+          return response;
+        })
+      );
   }
 
   isAuthenticated(): boolean {
     const token = this.getToken();
-    if (!token) {
-      return false;
-    }
+    if (!token) return false;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const expiry = payload.exp * 1000;
@@ -107,14 +116,8 @@ export class AuthService extends ApiBaseService {
   }
 
   hasPermission(permission: string): boolean {
-    const user = this.getCurrentUser();
-    if (!user) {
-      return false;
-    }
     const token = this.getToken();
-    if (!token) {
-      return false;
-    }
+    if (!token) return false;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const permissions: string[] = payload.permissions ?? [];
@@ -125,14 +128,8 @@ export class AuthService extends ApiBaseService {
   }
 
   hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    if (!user) {
-      return false;
-    }
     const token = this.getToken();
-    if (!token) {
-      return false;
-    }
+    if (!token) return false;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.role === role;
@@ -142,7 +139,7 @@ export class AuthService extends ApiBaseService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    return this.getStorage()?.getItem(this.TOKEN_KEY) ?? null;
   }
 
   getCurrentUser(): User | null {
@@ -150,34 +147,46 @@ export class AuthService extends ApiBaseService {
   }
 
   private storeSession(token: string, refreshToken: string, user: User): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    const storage = this.getStorage();
+    if (storage) {
+      storage.setItem(this.TOKEN_KEY, token);
+      storage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+      storage.setItem(this.USER_KEY, JSON.stringify(user));
+    }
     this.currentUserSubject.next(user);
   }
 
   private storeTokens(token: string, refreshToken: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+    const storage = this.getStorage();
+    if (storage) {
+      storage.setItem(this.TOKEN_KEY, token);
+      storage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+    }
   }
 
   private setCurrentUser(user: User): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    const storage = this.getStorage();
+    if (storage) {
+      storage.setItem(this.USER_KEY, JSON.stringify(user));
+    }
     this.currentUserSubject.next(user);
   }
 
   private clearSession(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
+    const storage = this.getStorage();
+    if (storage) {
+      storage.removeItem(this.TOKEN_KEY);
+      storage.removeItem(this.REFRESH_TOKEN_KEY);
+      storage.removeItem(this.USER_KEY);
+    }
     this.currentUserSubject.next(null);
   }
 
   private loadUserFromStorage(): User | null {
-    const stored = localStorage.getItem(this.USER_KEY);
-    if (!stored) {
-      return null;
-    }
+    const storage = this.getStorage();
+    if (!storage) return null;
+    const stored = storage.getItem(this.USER_KEY);
+    if (!stored) return null;
     try {
       return JSON.parse(stored) as User;
     } catch {

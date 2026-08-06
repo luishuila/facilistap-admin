@@ -14,23 +14,23 @@ export class UserService extends ApiBaseService {
   private readonly endpoint = 'admin/users';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<User>> {
-    return this.getPaginated<User>(this.endpoint, query);
+    return this._getPaginated<User>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<User>> {
-    return this.getById<User>(this.endpoint, id);
+    return this._getById<User>(this.endpoint, id);
   }
 
   create(data: Partial<User>): Observable<ApiResponse<User>> {
-    return this.create<User>(this.endpoint, data);
+    return this._create<User>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<User>): Observable<ApiResponse<User>> {
-    return this.update<User>(this.endpoint, id, data);
+    return this._update<User>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
   activate(id: number): Observable<ApiResponse<void>> {

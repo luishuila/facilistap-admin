@@ -52,37 +52,37 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="data-table-container">
-      @if (titleConfig.title || titleConfig.showSearch || titleConfig.showExport || titleConfig.showAddButton) {
+      @if (titleConfig().title || titleConfig().showSearch || titleConfig().showExport || titleConfig().showAddButton) {
         <div class="table-toolbar">
           <div class="toolbar-left">
-            @if (titleConfig.title) {
-              <h2 class="table-title">{{ titleConfig.title }}</h2>
+            @if (titleConfig().title) {
+              <h2 class="table-title">{{ titleConfig().title }}</h2>
             }
           </div>
           <div class="toolbar-right">
-            @if (titleConfig.showSearch) {
+            @if (titleConfig().showSearch) {
               <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
                 <mat-icon matPrefix>search</mat-icon>
                 <input
                   matInput
-                  [placeholder]="titleConfig.searchPlaceholder"
-                  [ngModel]="titleConfig.searchTerm"
+                  [placeholder]="titleConfig().searchPlaceholder"
+                  [ngModel]="titleConfig().searchTerm"
                   (ngModelChange)="onSearchChange($event)"
                 />
-                @if (titleConfig.searchTerm) {
+                @if (titleConfig().searchTerm) {
                   <button matSuffix mat-icon-button aria-label="Clear" (click)="clearSearch()">
                     <mat-icon>close</mat-icon>
                   </button>
                 }
               </mat-form-field>
             }
-            @if (titleConfig.showExport) {
+            @if (titleConfig().showExport) {
               <button mat-stroked-button [matMenuTriggerFor]="exportMenu" class="export-btn">
                 <mat-icon>file_download</mat-icon>
                 <span>Exportar</span>
               </button>
               <mat-menu #exportMenu="matMenu">
-                @for (format of titleConfig.exportFormats; track format) {
+                @for (format of titleConfig().exportFormats; track format) {
                   <button mat-menu-item (click)="onExport(format)">
                     <mat-icon>
                       @if (format === 'excel') { table_view }
@@ -94,27 +94,27 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
                 }
               </mat-menu>
             }
-            @if (titleConfig.showAddButton) {
+            @if (titleConfig().showAddButton) {
               <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
                 <mat-icon>add</mat-icon>
-                <span>{{ titleConfig.addButtonLabel }}</span>
+                <span>{{ titleConfig().addButtonLabel }}</span>
               </button>
             }
           </div>
         </div>
       }
 
-      @if (titleConfig.loading) {
+      @if (titleConfig().loading) {
         <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
       }
 
-      <div class="table-wrapper" [class.loading-overlay]="titleConfig.loading">
+      <div class="table-wrapper" [class.loading-overlay]="titleConfig().loading">
         <table
           mat-table
           [dataSource]="dataSource"
           matSort
-          [matSortActive]="titleConfig.sortActive"
-          [matSortDirection]="titleConfig.sortDirection"
+          [matSortActive]="titleConfig().sortActive"
+          [matSortDirection]="titleConfig().sortDirection"
           (matSortChange)="onSortChange($event)"
           class="mat-elevation-z0 data-table"
         >
@@ -122,7 +122,7 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
             <ng-container [matColumnDef]="column.key">
               <th mat-header-cell *matHeaderCellDef [style.width]="column.width || 'auto'"
                 [style.text-align]="column.align || 'left'"
-                [mat-sort-header]="column.sortable ? column.key : null"
+                [mat-sort-header]="column.sortable ? column.key : ''"
                 [disabled]="!column.sortable">
                 {{ column.label }}
               </th>
@@ -194,12 +194,12 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
         </table>
       </div>
 
-      @if (titleConfig.totalItems > 0) {
+      @if (titleConfig().totalItems > 0) {
         <mat-paginator
-          [length]="titleConfig.totalItems"
-          [pageSize]="titleConfig.pageSize"
-          [pageSizeOptions]="titleConfig.pageSizeOptions"
-          [pageIndex]="titleConfig.currentPage"
+          [length]="titleConfig().totalItems"
+          [pageSize]="titleConfig().pageSize"
+          [pageSizeOptions]="titleConfig().pageSizeOptions"
+          [pageIndex]="titleConfig().currentPage"
           (page)="onPageChange($event)"
           showFirstLastButtons
           class="table-paginator"

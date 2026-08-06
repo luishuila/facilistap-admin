@@ -14,15 +14,17 @@ export class SettingsService extends ApiBaseService {
   private readonly endpoint = 'admin/settings';
 
   getAll(): Observable<ApiResponse<SystemSetting[]>> {
-    return this.http.get<ApiResponse<SystemSetting[]>>(`${this.baseUrl}/${this.endpoint}`);
+    return this.http.get<ApiResponse<SystemSetting[]>>(
+      `${this.baseUrl}/${this.endpoint}`
+    );
   }
 
   getById(id: number): Observable<ApiResponse<SystemSetting>> {
-    return this.getById<SystemSetting>(this.endpoint, id);
+    return this._getById<SystemSetting>(this.endpoint, id);
   }
 
   update(id: number, data: Partial<SystemSetting>): Observable<ApiResponse<SystemSetting>> {
-    return this.update<SystemSetting>(this.endpoint, id, data);
+    return this._update<SystemSetting>(this.endpoint, id, data);
   }
 
   getByGroup(group: string): Observable<ApiResponse<SystemSetting[]>> {
@@ -31,39 +33,39 @@ export class SettingsService extends ApiBaseService {
     );
   }
 
-  getNotifications(): Observable<ApiResponse<NotificationConfig>> {
+  getNotificationConfig(): Observable<ApiResponse<NotificationConfig>> {
     return this.http.get<ApiResponse<NotificationConfig>>(
       `${this.baseUrl}/${this.endpoint}/notifications`
     );
   }
 
-  updateNotifications(data: NotificationConfig): Observable<ApiResponse<NotificationConfig>> {
+  updateNotificationConfig(data: NotificationConfig): Observable<ApiResponse<NotificationConfig>> {
     return this.http.put<ApiResponse<NotificationConfig>>(
       `${this.baseUrl}/${this.endpoint}/notifications`,
       data
     );
   }
 
-  getSecurity(): Observable<ApiResponse<SecurityConfig>> {
+  getSecurityConfig(): Observable<ApiResponse<SecurityConfig>> {
     return this.http.get<ApiResponse<SecurityConfig>>(
       `${this.baseUrl}/${this.endpoint}/security`
     );
   }
 
-  updateSecurity(data: SecurityConfig): Observable<ApiResponse<SecurityConfig>> {
+  updateSecurityConfig(data: SecurityConfig): Observable<ApiResponse<SecurityConfig>> {
     return this.http.put<ApiResponse<SecurityConfig>>(
       `${this.baseUrl}/${this.endpoint}/security`,
       data
     );
   }
 
-  getAuth(): Observable<ApiResponse<AuthConfig>> {
+  getAuthConfig(): Observable<ApiResponse<AuthConfig>> {
     return this.http.get<ApiResponse<AuthConfig>>(
       `${this.baseUrl}/${this.endpoint}/auth`
     );
   }
 
-  updateAuth(data: AuthConfig): Observable<ApiResponse<AuthConfig>> {
+  updateAuthConfig(data: AuthConfig): Observable<ApiResponse<AuthConfig>> {
     return this.http.put<ApiResponse<AuthConfig>>(
       `${this.baseUrl}/${this.endpoint}/auth`,
       data

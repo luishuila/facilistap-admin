@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiBaseService } from '../../core/services/api-base.service';
-import { PQRS, PqrsResponse, PqrsFile, PqrsStatus } from '../../core/models/pqrs.interface';
+import { PQRS, PqrsResponse, PqrsFile } from '../../core/models/pqrs.interface';
 import {
   ApiResponse,
   PaginatedResponse,
@@ -13,26 +13,26 @@ export class PqrsService extends ApiBaseService {
   private readonly endpoint = 'admin/pqrs';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<PQRS>> {
-    return this.getPaginated<PQRS>(this.endpoint, query);
+    return this._getPaginated<PQRS>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<PQRS>> {
-    return this.getById<PQRS>(this.endpoint, id);
+    return this._getById<PQRS>(this.endpoint, id);
   }
 
   create(data: Partial<PQRS>): Observable<ApiResponse<PQRS>> {
-    return this.create<PQRS>(this.endpoint, data);
+    return this._create<PQRS>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<PQRS>): Observable<ApiResponse<PQRS>> {
-    return this.update<PQRS>(this.endpoint, id, data);
+    return this._update<PQRS>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
-  updateStatus(id: number, status: PqrsStatus): Observable<ApiResponse<void>> {
+  changeStatus(id: number, status: string): Observable<ApiResponse<void>> {
     return this.http.patch<ApiResponse<void>>(
       `${this.baseUrl}/${this.endpoint}/${id}/status`,
       { status }

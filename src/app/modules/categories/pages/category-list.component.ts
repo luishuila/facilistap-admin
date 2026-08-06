@@ -17,9 +17,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { finalize } from 'rxjs';
 
 import { DataTableComponent } from '../../../shared/components/data-table/data-table.component';
-import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
-import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { CategoryService } from '../category.service';
 import { Category } from '../../../core/models/category.interface';
@@ -38,9 +36,7 @@ import { CategoryFormComponent } from '../components/category-form.component';
     MatIconModule,
     MatButtonModule,
     DataTableComponent,
-    LoadingSpinnerComponent,
     EmptyStateComponent,
-    StatusBadgeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './category-list.component.html',

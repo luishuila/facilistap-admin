@@ -13,23 +13,23 @@ export class ProviderService extends ApiBaseService {
   private readonly endpoint = 'admin/providers';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<Provider>> {
-    return this.getPaginated<Provider>(this.endpoint, query);
+    return this._getPaginated<Provider>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<Provider>> {
-    return this.getById<Provider>(this.endpoint, id);
+    return this._getById<Provider>(this.endpoint, id);
   }
 
   create(data: Partial<Provider>): Observable<ApiResponse<Provider>> {
-    return this.create<Provider>(this.endpoint, data);
+    return this._create<Provider>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<Provider>): Observable<ApiResponse<Provider>> {
-    return this.update<Provider>(this.endpoint, id, data);
+    return this._update<Provider>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
   toggle(id: number): Observable<ApiResponse<void>> {

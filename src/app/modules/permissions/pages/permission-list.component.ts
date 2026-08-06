@@ -18,7 +18,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { finalize } from 'rxjs';
 
 import { DataTableComponent } from '../../../shared/components/data-table/data-table.component';
-import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogService } from '../../../shared/services/confirm-dialog.service';
 import { PermissionService } from '../permission.service';
@@ -45,7 +44,6 @@ import { PermissionFormComponent } from '../components/permission-form.component
     MatFormFieldModule,
     MatSelectModule,
     DataTableComponent,
-    LoadingSpinnerComponent,
     EmptyStateComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

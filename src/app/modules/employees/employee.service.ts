@@ -13,23 +13,23 @@ export class EmployeeService extends ApiBaseService {
   private readonly endpoint = 'admin/employees';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<Employee>> {
-    return this.getPaginated<Employee>(this.endpoint, query);
+    return this._getPaginated<Employee>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<Employee>> {
-    return this.getById<Employee>(this.endpoint, id);
+    return this._getById<Employee>(this.endpoint, id);
   }
 
   create(data: Partial<Employee>): Observable<ApiResponse<Employee>> {
-    return this.create<Employee>(this.endpoint, data);
+    return this._create<Employee>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<Employee>): Observable<ApiResponse<Employee>> {
-    return this.update<Employee>(this.endpoint, id, data);
+    return this._update<Employee>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
   toggle(id: number): Observable<ApiResponse<void>> {

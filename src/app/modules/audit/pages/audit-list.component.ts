@@ -21,7 +21,6 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { finalize } from 'rxjs';
 
 import { DataTableComponent } from '../../../shared/components/data-table/data-table.component';
-import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { AuditService } from '../audit.service';
 import { Audit } from '../../../core/models/audit.interface';
@@ -87,7 +86,6 @@ function buildActionStatusMap(): Record<string, { label: string; color: string }
     MatDatepickerModule,
     MatNativeDateModule,
     DataTableComponent,
-    LoadingSpinnerComponent,
     EmptyStateComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

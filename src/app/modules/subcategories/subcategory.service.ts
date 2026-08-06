@@ -13,23 +13,23 @@ export class SubcategoryService extends ApiBaseService {
   private readonly endpoint = 'admin/subcategories';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<Subcategory>> {
-    return this.getPaginated<Subcategory>(this.endpoint, query);
+    return this._getPaginated<Subcategory>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<Subcategory>> {
-    return this.getById<Subcategory>(this.endpoint, id);
+    return this._getById<Subcategory>(this.endpoint, id);
   }
 
   create(data: Partial<Subcategory>): Observable<ApiResponse<Subcategory>> {
-    return this.create<Subcategory>(this.endpoint, data);
+    return this._create<Subcategory>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<Subcategory>): Observable<ApiResponse<Subcategory>> {
-    return this.update<Subcategory>(this.endpoint, id, data);
+    return this._update<Subcategory>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
   toggle(id: number): Observable<ApiResponse<void>> {

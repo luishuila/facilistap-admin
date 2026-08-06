@@ -24,7 +24,7 @@ export class RoleAccessDirective implements OnInit, OnDestroy {
   private _allowedRoles: string[] = [];
 
   ngOnInit(): void {
-    this.subscription = this.authService.currentUser.subscribe(() => {
+    this.subscription = this.authService.currentUser$.subscribe(() => {
       this.updateView();
     });
   }
@@ -34,7 +34,9 @@ export class RoleAccessDirective implements OnInit, OnDestroy {
   }
 
   private updateView(): void {
-    const hasAccess = this.authService.hasRole(this._allowedRoles);
+    const hasAccess = this._allowedRoles.some((r) =>
+      this.authService.hasRole(r)
+    );
     if (hasAccess && !this.hasView) {
       this.viewContainer.clear();
       this.viewContainer.createEmbeddedView(this.templateRef);

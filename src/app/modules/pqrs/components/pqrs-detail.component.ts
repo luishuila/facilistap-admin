@@ -636,7 +636,7 @@ export class PqrsDetailComponent implements OnInit {
       operations.push(
         new Promise<void>((resolve, reject) => {
           this.pqrsService
-            .updateStatus(pqrsId, newStatus as PqrsStatus)
+            .changeStatus(pqrsId, newStatus as PqrsStatus)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({ next: () => resolve(), error: () => reject() });
         }),

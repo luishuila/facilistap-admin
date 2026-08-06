@@ -11,51 +11,51 @@ export abstract class ApiBaseService {
   protected http = inject(HttpClient);
   protected baseUrl = `${environment.apiUrl}/${environment.apiVersion}`;
 
-  protected getAll<T>(endpoint: string, params?: Record<string, unknown>): Observable<ApiResponse<T[]>> {
+  protected _getAll<T>(endpoint: string, params?: Record<string, unknown>): Observable<ApiResponse<T[]>> {
     const httpParams = this.buildHttpParams(params);
     return this.http.get<ApiResponse<T[]>>(`${this.baseUrl}/${endpoint}`, { params: httpParams }).pipe(
       catchError((error) => this.handleError(error))
     );
   }
 
-  protected getById<T>(endpoint: string, id: number | string): Observable<ApiResponse<T>> {
+  protected _getById<T>(endpoint: string, id: number | string): Observable<ApiResponse<T>> {
     return this.http.get<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`).pipe(
       catchError((error) => this.handleError(error))
     );
   }
 
-  protected search<T>(endpoint: string, params?: Record<string, unknown>): Observable<ApiResponse<T[]>> {
+  protected _search<T>(endpoint: string, params?: Record<string, unknown>): Observable<ApiResponse<T[]>> {
     const httpParams = this.buildHttpParams(params);
     return this.http.get<ApiResponse<T[]>>(`${this.baseUrl}/${endpoint}/search`, { params: httpParams }).pipe(
       catchError((error) => this.handleError(error))
     );
   }
 
-  protected create<T>(endpoint: string, data: unknown): Observable<ApiResponse<T>> {
+  protected _create<T>(endpoint: string, data: unknown): Observable<ApiResponse<T>> {
     return this.http.post<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`, data).pipe(
       catchError((error) => this.handleError(error))
     );
   }
 
-  protected update<T>(endpoint: string, id: number | string, data: unknown): Observable<ApiResponse<T>> {
+  protected _update<T>(endpoint: string, id: number | string, data: unknown): Observable<ApiResponse<T>> {
     return this.http.put<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`, data).pipe(
       catchError((error) => this.handleError(error))
     );
   }
 
-  protected patch<T>(endpoint: string, id: number | string, data: unknown): Observable<ApiResponse<T>> {
+  protected _patch<T>(endpoint: string, id: number | string, data: unknown): Observable<ApiResponse<T>> {
     return this.http.patch<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`, data).pipe(
       catchError((error) => this.handleError(error))
     );
   }
 
-  protected delete<T>(endpoint: string, id: number | string): Observable<ApiResponse<T>> {
+  protected _delete<T>(endpoint: string, id: number | string): Observable<ApiResponse<T>> {
     return this.http.delete<ApiResponse<T>>(`${this.baseUrl}/${endpoint}/${id}`).pipe(
       catchError((error) => this.handleError(error))
     );
   }
 
-  protected getPaginated<T>(endpoint: string, query: PaginatedQuery): Observable<PaginatedResponse<T>> {
+  protected _getPaginated<T>(endpoint: string, query: PaginatedQuery): Observable<PaginatedResponse<T>> {
     const params = this.buildHttpParams({
       page: query.page ?? 1,
       limit: query.limit ?? 10,

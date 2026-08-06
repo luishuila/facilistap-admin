@@ -33,6 +33,7 @@ import {
   SecurityConfig,
   AuthConfig,
 } from '../../../core/models/settings.interface';
+import { ApiResponse } from '../../../core/models/api-response.interface';
 import { LoadingSpinnerComponent } from '../../../shared/components/loading-spinner/loading-spinner.component';
 
 interface GeneralSettingForm {
@@ -483,7 +484,7 @@ export class SettingsComponent implements OnInit {
 
   protected readonly generalSettings = signal<SystemSetting[]>([]);
 
-  protected readonly generalForm = this.fb.group({});
+  protected generalForm = this.fb.group<Record<string, unknown>>({});
   protected readonly notificationForm = this.fb.group({
     emailEnabled: this.fb.control(false, { nonNullable: true }),
     smsEnabled: this.fb.control(false, { nonNullable: true }),
@@ -528,7 +529,7 @@ export class SettingsComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (res) => {
+        next: (res: ApiResponse<SystemSetting[]>) => {
           this.generalSettings.set(res.data);
           this.buildGeneralForm(res.data);
         },
@@ -548,7 +549,7 @@ export class SettingsComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (res) => {
+        next: (res: ApiResponse<SystemSetting[]>) => {
           this.generalSettings.set(res.data);
           this.buildGeneralForm(res.data);
         },
@@ -562,13 +563,13 @@ export class SettingsComponent implements OnInit {
     this.tabLoading.set(true);
 
     this.settingsService
-      .getNotifications()
+      .getNotificationConfig()
       .pipe(
         finalize(() => this.tabLoading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (res) => {
+        next: (res: ApiResponse<NotificationConfig>) => {
           this.notificationForm.setValue({
             emailEnabled: res.data.emailEnabled,
             smsEnabled: res.data.smsEnabled,
@@ -586,13 +587,13 @@ export class SettingsComponent implements OnInit {
     this.tabLoading.set(true);
 
     this.settingsService
-      .getSecurity()
+      .getSecurityConfig()
       .pipe(
         finalize(() => this.tabLoading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (res) => {
+        next: (res: ApiResponse<SecurityConfig>) => {
           this.securityForm.setValue({
             maxLoginAttempts: res.data.maxLoginAttempts,
             sessionTimeout: res.data.sessionTimeout,
@@ -611,13 +612,13 @@ export class SettingsComponent implements OnInit {
     this.tabLoading.set(true);
 
     this.settingsService
-      .getAuth()
+      .getAuthConfig()
       .pipe(
         finalize(() => this.tabLoading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (res) => {
+        next: (res: ApiResponse<AuthConfig>) => {
           this.authForm.setValue({
             jwtSecret: res.data.jwtSecret,
             jwtExpiration: res.data.jwtExpiration,
@@ -649,7 +650,7 @@ export class SettingsComponent implements OnInit {
       );
     }
 
-    this.generalForm.setControl(controls);
+    this.generalForm = this.fb.group(controls);
     this.generalForm.markAsPristine();
   }
 
@@ -707,7 +708,7 @@ export class SettingsComponent implements OnInit {
     const data: NotificationConfig = this.notificationForm.getRawValue();
 
     this.settingsService
-      .updateNotifications(data)
+      .updateNotificationConfig(data)
       .pipe(
         finalize(() => this.tabSaving.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -731,7 +732,7 @@ export class SettingsComponent implements OnInit {
     const data: SecurityConfig = this.securityForm.getRawValue();
 
     this.settingsService
-      .updateSecurity(data)
+      .updateSecurityConfig(data)
       .pipe(
         finalize(() => this.tabSaving.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -755,7 +756,7 @@ export class SettingsComponent implements OnInit {
     const data: AuthConfig = this.authForm.getRawValue();
 
     this.settingsService
-      .updateAuth(data)
+      .updateAuthConfig(data)
       .pipe(
         finalize(() => this.tabSaving.set(false)),
         takeUntilDestroyed(this.destroyRef),

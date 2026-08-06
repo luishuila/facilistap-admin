@@ -26,7 +26,7 @@ export class PermissionAccessDirective implements OnInit, OnDestroy {
   private _requiredPermissions: string[] = [];
 
   ngOnInit(): void {
-    this.subscription = this.authService.currentUser.subscribe(() => {
+    this.subscription = this.authService.currentUser$.subscribe(() => {
       this.updateView();
     });
   }
@@ -38,9 +38,13 @@ export class PermissionAccessDirective implements OnInit, OnDestroy {
   private updateView(): void {
     let hasAccess = false;
     if (this.mode === 'any') {
-      hasAccess = this.authService.hasAnyPermission(this._requiredPermissions);
+      hasAccess = this._requiredPermissions.some((p) =>
+        this.authService.hasPermission(p)
+      );
     } else {
-      hasAccess = this.authService.hasPermission(this._requiredPermissions);
+      hasAccess = this._requiredPermissions.every((p) =>
+        this.authService.hasPermission(p)
+      );
     }
     if (hasAccess && !this.hasView) {
       this.viewContainer.clear();

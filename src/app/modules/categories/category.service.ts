@@ -13,23 +13,23 @@ export class CategoryService extends ApiBaseService {
   private readonly endpoint = 'admin/categories';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<Category>> {
-    return this.getPaginated<Category>(this.endpoint, query);
+    return this._getPaginated<Category>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<Category>> {
-    return this.getById<Category>(this.endpoint, id);
+    return this._getById<Category>(this.endpoint, id);
   }
 
   create(data: Partial<Category>): Observable<ApiResponse<Category>> {
-    return this.create<Category>(this.endpoint, data);
+    return this._create<Category>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<Category>): Observable<ApiResponse<Category>> {
-    return this.update<Category>(this.endpoint, id, data);
+    return this._update<Category>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
   toggle(id: number): Observable<ApiResponse<void>> {

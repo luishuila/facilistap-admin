@@ -14,23 +14,23 @@ export class RoleService extends ApiBaseService {
   private readonly endpoint = 'admin/roles';
 
   getAll(query: PaginatedQuery): Observable<PaginatedResponse<Role>> {
-    return this.getPaginated<Role>(this.endpoint, query);
+    return this._getPaginated<Role>(this.endpoint, query);
   }
 
   getById(id: number): Observable<ApiResponse<Role>> {
-    return this.getById<Role>(this.endpoint, id);
+    return this._getById<Role>(this.endpoint, id);
   }
 
   create(data: Partial<Role>): Observable<ApiResponse<Role>> {
-    return this.create<Role>(this.endpoint, data);
+    return this._create<Role>(this.endpoint, data);
   }
 
   update(id: number, data: Partial<Role>): Observable<ApiResponse<Role>> {
-    return this.update<Role>(this.endpoint, id, data);
+    return this._update<Role>(this.endpoint, id, data);
   }
 
   delete(id: number): Observable<ApiResponse<void>> {
-    return this.delete<void>(this.endpoint, id);
+    return this._delete<void>(this.endpoint, id);
   }
 
   getPermissions(roleId: number): Observable<ApiResponse<Permission[]>> {

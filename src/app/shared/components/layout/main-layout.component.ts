@@ -1,4 +1,4 @@
-import { Component, ViewChild, OnInit, inject, signal } from '@angular/core';
+import { Component, ViewChild, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
@@ -11,7 +11,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
-import { AuthService } from '../../core/services/auth.service';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { AuthService } from '../../../core/services/auth.service';
+import { User } from '../../../core/models/user.interface';
 
 interface NavItem {
   label: string;
@@ -36,6 +38,7 @@ interface NavItem {
     MatDividerModule,
     MatTooltipModule,
     MatBadgeModule,
+    MatSnackBarModule,
   ],
   template: `
     <mat-sidenav-container class="layout-container" [class.is-mobile]="isMobile()">
@@ -59,12 +62,12 @@ interface NavItem {
 
         <div class="user-info" [class.collapsed]="sidebarCollapsed()">
           <div class="user-avatar">
-            <span class="avatar-text">{{ userInitialsValue() }}</span>
+            <span class="avatar-text">{{ userInitials() }}</span>
           </div>
           @if (!sidebarCollapsed()) {
             <div class="user-details">
               <span class="user-name">{{ currentUser()?.username ?? 'Usuario' }}</span>
-              <span class="user-role">{{ currentUser()?.role ?? 'Sin rol' }}</span>
+              <span class="user-role">{{ currentUser()?.roleName ?? 'Sin rol' }}</span>
             </div>
           }
         </div>
@@ -98,6 +101,8 @@ interface NavItem {
                   <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
                   @if (!sidebarCollapsed()) {
                     <span matListItemTitle>{{ item.label }}</span>
+                  }
+                  @if (!sidebarCollapsed()) {
                     <mat-icon class="expand-icon">
                       {{ isSubmenuExpanded(item) ? 'expand_less' : 'expand_more' }}
                     </mat-icon>
@@ -155,7 +160,7 @@ interface NavItem {
 
             <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-btn">
               <div class="toolbar-avatar">
-                <span class="avatar-text">{{ userInitialsValue() }}</span>
+            <span class="avatar-text">{{ userInitials() }}</span>
               </div>
             </button>
             <mat-menu #userMenu="matMenu" xPosition="before">
@@ -558,8 +563,9 @@ export class MainLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly snackBar = inject(MatSnackBar);
 
-  protected readonly currentUser = this.authService.currentUser;
+  protected readonly currentUser = signal<User | null>(null);
   protected readonly isMobile = signal(false);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly pageTitle = signal('Dashboard');
@@ -581,13 +587,17 @@ export class MainLayoutComponent implements OnInit {
     { label: 'Configuración', icon: 'settings', route: '/admin/configuracion' },
   ];
 
-  protected userInitialsValue(): string {
-    const user = this.authService.currentUser();
-    if (!user?.username) return 'U';
-    return user.username.charAt(0).toUpperCase();
-  }
+  protected readonly userInitials = computed(() => {
+    const username = this.currentUser()?.username;
+    if (!username) return 'U';
+    return username.charAt(0).toUpperCase();
+  });
 
   ngOnInit(): void {
+    this.authService.currentUser$.subscribe((user) => {
+      this.currentUser.set(user);
+    });
+
     this.breakpointObserver
       .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
       .subscribe((result) => {
@@ -618,6 +628,13 @@ export class MainLayoutComponent implements OnInit {
   }
 
   logout(): void {
-    this.authService.logout();
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/auth/login']);
+      },
+      error: () => {
+        this.router.navigate(['/auth/login']);
+      },
+    });
   }
 }

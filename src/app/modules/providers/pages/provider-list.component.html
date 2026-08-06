@@ -1,0 +1,40 @@
+<div class="provider-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Proveedores</h1>
+      <p class="page-subtitle">Administre los proveedores del sistema</p>
+    </div>
+    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      <span>Nuevo Proveedor</span>
+    </button>
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="providers()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar proveedores...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && providers().length === 0) {
+    <app-empty-state
+      icon="local_shipping"
+      title="Sin proveedores"
+      message="No se encontraron proveedores registrados"
+      [showAction]="true"
+      actionLabel="Crear Proveedor"
+      (action)="onAdd()"
+    />
+  }
+</div>

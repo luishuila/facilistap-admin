@@ -1,0 +1,88 @@
+<div class="pqrs-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de PQRS</h1>
+      <p class="page-subtitle">Administre las peticiones, quejas, reclamos y sugerencias</p>
+    </div>
+    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      <span>Nuevo PQRS</span>
+    </button>
+  </div>
+
+  <div class="filters-bar">
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select [ngModel]="statusFilter()" (ngModelChange)="onStatusFilterChange($event)">
+        <mat-option [value]="''">Todos los estados</mat-option>
+        @for (status of statusList; track status.value) {
+          <mat-option [value]="status.value">
+            <div class="filter-option">
+              <span class="filter-dot" [style.background]="status.color"></span>
+              <span>{{ status.label }}</span>
+            </div>
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Tipo</mat-label>
+      <mat-select [ngModel]="typeFilter()" (ngModelChange)="onTypeFilterChange($event)">
+        <mat-option [value]="''">Todos los tipos</mat-option>
+        @for (type of typeList; track type.value) {
+          <mat-option [value]="type.value">{{ type.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput [matDatepicker]="pickerFrom" [ngModel]="dateFrom()" (ngModelChange)="onDateFromChange($event)" />
+      <mat-datepicker-toggle matSuffix [for]="pickerFrom" />
+      <mat-datepicker #pickerFrom />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput [matDatepicker]="pickerTo" [ngModel]="dateTo()" (ngModelChange)="onDateToChange($event)" />
+      <mat-datepicker-toggle matSuffix [for]="pickerTo" />
+      <mat-datepicker #pickerTo />
+    </mat-form-field>
+
+    @if (hasActiveFilters()) {
+      <button mat-stroked-button (click)="clearFilters()" class="clear-filters-btn">
+        <mat-icon>clear_all</mat-icon>
+        Limpiar filtros
+      </button>
+    }
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="pqrsList()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar por asunto o usuario...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && pqrsList().length === 0) {
+    <app-empty-state
+      icon="feedback"
+      title="Sin PQRS"
+      message="No se encontraron PQRS registrados"
+      [showAction]="true"
+      actionLabel="Crear PQRS"
+      (action)="onAdd()"
+    />
+  }
+</div>

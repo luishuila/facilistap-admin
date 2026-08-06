@@ -1,0 +1,101 @@
+<div class="form-dialog">
+  <div class="dialog-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <mat-icon>{{ isEdit ? 'edit' : 'add_circle' }}</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">
+          {{ isEdit ? 'Editar Subcategoría' : 'Nueva Subcategoría' }}
+        </h2>
+        <p class="dialog-subtitle">
+          {{
+            isEdit
+              ? 'Modifique los datos de la subcategoría'
+              : 'Complete los datos para crear una subcategoría'
+          }}
+        </p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onCancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre</mat-label>
+      <mat-icon matPrefix>badge</mat-icon>
+      <input
+        matInput
+        formControlName="name"
+        placeholder="Ej: Parrilla"
+        autocomplete="off"
+      />
+      @if (
+        form.controls['name'].hasError('required') &&
+        form.controls['name'].touched
+      ) {
+        <mat-error>El nombre es requerido</mat-error>
+      }
+      @if (form.controls['name'].hasError('maxlength')) {
+        <mat-error>Máximo 100 caracteres</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Descripción</mat-label>
+      <mat-icon matPrefix>description</mat-icon>
+      <textarea
+        matInput
+        formControlName="description"
+        placeholder="Descripción de la subcategoría"
+        rows="3"
+      ></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Categoría</mat-label>
+      <mat-icon matPrefix>category</mat-icon>
+      <mat-select formControlName="categoryId" placeholder="Seleccione una categoría">
+        @for (cat of categories(); track cat.id) {
+          <mat-option [value]="cat.id">
+            <div class="category-option">
+              <mat-icon>{{ cat.icon || 'folder' }}</mat-icon>
+              <span>{{ cat.name }}</span>
+            </div>
+          </mat-option>
+        }
+      </mat-select>
+      @if (
+        form.controls['categoryId'].hasError('required') &&
+        form.controls['categoryId'].touched
+      ) {
+        <mat-error>La categoría es requerida</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="form-actions">
+      <button
+        mat-stroked-button
+        type="button"
+        class="cancel-btn"
+        (click)="onCancel()"
+      >
+        Cancelar
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="save-btn"
+        [disabled]="form.invalid || submitting"
+      >
+        @if (submitting) {
+          <mat-icon class="spin">sync</mat-icon>
+        }
+        {{ isEdit ? 'Guardar Cambios' : 'Crear Subcategoría' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,65 @@
+<div class="subcategory-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Subcategorías</h1>
+      <p class="page-subtitle">Administre las subcategorías del sistema</p>
+    </div>
+    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      <span>Nueva Subcategoría</span>
+    </button>
+  </div>
+
+  <div class="filter-bar">
+    <mat-form-field appearance="outline" class="category-filter" subscriptSizing="dynamic">
+      <mat-label>Filtrar por categoría</mat-label>
+      <mat-icon matPrefix>filter_list</mat-icon>
+      <mat-select [formControl]="categoryFilter" placeholder="Todas las categorías">
+        <mat-option [value]="null">Todas las categorías</mat-option>
+        @for (cat of categories(); track cat.id) {
+          <mat-option [value]="cat.id">
+            <div class="category-option">
+              <mat-icon>{{ cat.icon || 'folder' }}</mat-icon>
+              <span>{{ cat.name }}</span>
+            </div>
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (categoryFilter.value) {
+      <button mat-stroked-button class="clear-filter-btn" (click)="categoryFilter.setValue(null)">
+        <mat-icon>close</mat-icon>
+        Limpiar filtro
+      </button>
+    }
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="subcategories()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar subcategorías...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && subcategories().length === 0) {
+    <app-empty-state
+      icon="subdirectory_arrow_right"
+      title="Sin subcategorías"
+      message="No se encontraron subcategorías registradas"
+      [showAction]="true"
+      actionLabel="Crear Subcategoría"
+      (action)="onAdd()"
+    />
+  }
+</div>

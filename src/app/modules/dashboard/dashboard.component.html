@@ -1,0 +1,171 @@
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1 class="dashboard-title">Panel de Control</h1>
+      <p class="dashboard-subtitle">Resumen general del sistema</p>
+    </div>
+  </header>
+
+  @let statsData = stats();
+  @let activityData = activity();
+
+  @if (!isStatsLoading() && statsData) {
+  <section class="stats-section">
+    <div class="stats-grid stats-grid-4">
+      <app-stat-card
+        icon="group"
+        label="Total Usuarios"
+        [value]="statsData.totalUsers"
+        color="primary">
+      </app-stat-card>
+      <app-stat-card
+        icon="check_circle"
+        label="Usuarios Activos"
+        [value]="statsData.activeUsers"
+        color="success">
+      </app-stat-card>
+      <app-stat-card
+        icon="block"
+        label="Bloqueados"
+        [value]="statsData.blockedUsers"
+        color="danger">
+      </app-stat-card>
+      <app-stat-card
+        icon="local_shipping"
+        label="Proveedores"
+        [value]="statsData.totalProviders"
+        color="info">
+      </app-stat-card>
+    </div>
+
+    <div class="stats-grid stats-grid-3">
+      <app-stat-card
+        icon="badge"
+        label="Empleados"
+        [value]="statsData.totalEmployees"
+        color="info">
+      </app-stat-card>
+      <app-stat-card
+        icon="category"
+        label="Categorias"
+        [value]="statsData.totalCategories"
+        color="warning">
+      </app-stat-card>
+      <app-stat-card
+        icon="contact_support"
+        label="Total PQRS"
+        [value]="statsData.totalPqrs"
+        color="primary">
+      </app-stat-card>
+    </div>
+  </section>
+
+  <section class="charts-section">
+    <div class="charts-grid">
+      <mat-card class="chart-card">
+        <mat-card-content class="chart-content">
+          @if (barChartData.labels?.length) {
+          <canvas
+            baseChart
+            [type]="'bar'"
+            [data]="barChartData"
+            [options]="barChartOptions">
+          </canvas>
+          } @else {
+          <div class="chart-empty">
+            <mat-icon fontIcon="bar_chart"></mat-icon>
+            <span>Sin datos de PQRS</span>
+          </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="chart-card">
+        <mat-card-content class="chart-content">
+          @if (doughnutChartData.labels?.length) {
+          <canvas
+            baseChart
+            [type]="'doughnut'"
+            [data]="doughnutChartData"
+            [options]="doughnutChartOptions">
+          </canvas>
+          } @else {
+          <div class="chart-empty">
+            <mat-icon fontIcon="pie_chart"></mat-icon>
+            <span>Sin datos de roles</span>
+          </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </section>
+  } @else if (isStatsLoading()) {
+  <section class="loading-section">
+    <div class="stats-grid stats-grid-4">
+      @for (_ of [1,2,3,4]; track $index) {
+      <mat-card class="skeleton-card">
+        <mat-card-content class="skeleton-content">
+          <mat-spinner diameter="28" strokeWidth="3"></mat-spinner>
+        </mat-card-content>
+      </mat-card>
+      }
+    </div>
+  </section>
+  }
+
+  <section class="activity-section">
+    <mat-card class="activity-card">
+      <mat-card-header>
+        <div class="activity-header">
+          <mat-icon fontIcon="history" class="activity-header-icon"></mat-icon>
+          <div>
+            <mat-card-title>Actividad Reciente</mat-card-title>
+            <mat-card-subtitle>Ultimos movimientos en el sistema</mat-card-subtitle>
+          </div>
+        </div>
+      </mat-card-header>
+      <mat-divider></mat-divider>
+      <mat-card-content class="activity-content">
+        @if (isActivityLoading()) {
+        <div class="activity-loading">
+          <mat-spinner diameter="32" strokeWidth="3"></mat-spinner>
+        </div>
+        } @else if (activityData.length === 0) {
+        <div class="activity-empty">
+          <mat-icon fontIcon="inbox"></mat-icon>
+          <span>No hay actividad reciente</span>
+        </div>
+        } @else {
+        <div class="activity-table-wrapper">
+          <table mat-table [dataSource]="activityData" class="activity-table">
+            <ng-container matColumnDef="userName">
+              <th mat-header-cell *matHeaderCellDef>Usuario</th>
+              <td mat-cell *matCellDef="let row">
+                <div class="user-cell">
+                  <div class="user-avatar">{{ row.userName?.charAt(0)?.toUpperCase() }}</div>
+                  <span>{{ row.userName }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>Descripcion</th>
+              <td mat-cell *matCellDef="let row">{{ row.description }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="createdAt">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="activity-date">{{ formatDate(row.createdAt) }}</span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="activityColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: activityColumns;"></tr>
+          </table>
+        </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  </section>
+</div>

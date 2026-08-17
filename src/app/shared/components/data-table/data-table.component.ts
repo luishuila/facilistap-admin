@@ -171,7 +171,7 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
                     </mat-menu>
                   </div>
                 } @else if (column.type === 'number') {
-                  {{ row[column.key] | number: (column.format || '1.0-0') }}
+                  {{ row[column.key] != null ? (row[column.key] | number: (column.format || '1.0-0')) : '' }}
                 } @else {
                   {{ row[column.key] }}
                 }

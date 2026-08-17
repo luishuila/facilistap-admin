@@ -1,0 +1,85 @@
+<div class="form-dialog">
+  <div class="dialog-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <mat-icon>{{ isEdit ? 'edit' : 'add_business' }}</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">{{ isEdit ? 'Editar Proveedor' : 'Nuevo Proveedor' }}</h2>
+        <p class="dialog-subtitle">
+          {{ isEdit ? 'Modifique los datos del proveedor' : 'Complete los datos para registrar un proveedor' }}
+        </p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onCancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre</mat-label>
+      <mat-icon matPrefix>business</mat-icon>
+      <input matInput formControlName="name" placeholder="Ej: Proveedor XYZ S.A.S." autocomplete="off" />
+      @if (form.controls['name'].hasError('required') && form.controls['name'].touched) {
+        <mat-error>El nombre es requerido</mat-error>
+      }
+      @if (form.controls['name'].hasError('maxlength')) {
+        <mat-error>Máximo 200 caracteres</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Descripción</mat-label>
+      <mat-icon matPrefix>description</mat-icon>
+      <textarea matInput formControlName="description" placeholder="Descripción del proveedor" rows="3"></textarea>
+    </mat-form-field>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Email</mat-label>
+        <mat-icon matPrefix>email</mat-icon>
+        <input matInput formControlName="email" type="email" placeholder="Ej: contacto@proveedor.com" autocomplete="off" />
+        @if (form.controls['email'].hasError('required') && form.controls['email'].touched) {
+          <mat-error>El email es requerido</mat-error>
+        }
+        @if (form.controls['email'].hasError('email') && form.controls['email'].touched) {
+          <mat-error>Ingrese un email válido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Teléfono</mat-label>
+        <mat-icon matPrefix>phone</mat-icon>
+        <input matInput formControlName="phone" placeholder="Ej: +57 601 123 4567" autocomplete="off" />
+        @if (form.controls['phone'].hasError('required') && form.controls['phone'].touched) {
+          <mat-error>El teléfono es requerido</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Dirección</mat-label>
+      <mat-icon matPrefix>location_on</mat-icon>
+      <input matInput formControlName="address" placeholder="Ej: Calle 123 #45-67, Bogotá" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Persona de Contacto</mat-label>
+      <mat-icon matPrefix>person</mat-icon>
+      <input matInput formControlName="contactPerson" placeholder="Ej: María García" autocomplete="off" />
+    </mat-form-field>
+
+    <div class="form-actions">
+      <button mat-stroked-button type="button" class="cancel-btn" (click)="onCancel()">
+        Cancelar
+      </button>
+      <button mat-flat-button color="primary" type="submit" class="save-btn" [disabled]="form.invalid || submitting">
+        @if (submitting) {
+          <mat-icon class="spin">sync</mat-icon>
+        }
+        {{ isEdit ? 'Guardar Cambios' : 'Crear Proveedor' }}
+      </button>
+    </div>
+  </form>
+</div>

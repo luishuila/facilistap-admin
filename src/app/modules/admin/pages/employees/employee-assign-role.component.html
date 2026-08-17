@@ -1,0 +1,57 @@
+<div class="form-dialog">
+  <div class="dialog-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <mat-icon>manage_accounts</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Cambiar Rol</h2>
+        <p class="dialog-subtitle">
+          Seleccione el nuevo rol para {{ employee.firstName }} {{ employee.lastName }}
+        </p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onCancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body">
+    <div class="current-role-info">
+      <span class="info-label">Rol actual:</span>
+      <span class="info-value">{{ employee.roleName }}</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nuevo Rol</mat-label>
+      <mat-icon matPrefix>manage_accounts</mat-icon>
+      <mat-select formControlName="roleId">
+        @if (rolesLoading()) {
+          <mat-option disabled>
+            Cargando roles...
+          </mat-option>
+        }
+        @for (role of roles(); track role.id) {
+          <mat-option [value]="role.id">
+            {{ role.name }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (form.controls['roleId'].hasError('required') && form.controls['roleId'].touched) {
+        <mat-error>El rol es requerido</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="form-actions">
+      <button mat-stroked-button type="button" class="cancel-btn" (click)="onCancel()">
+        Cancelar
+      </button>
+      <button mat-flat-button color="primary" type="submit" class="save-btn" [disabled]="form.invalid || submitting">
+        @if (submitting) {
+          <mat-icon class="spin">sync</mat-icon>
+        }
+        Asignar Rol
+      </button>
+    </div>
+  </form>
+</div>

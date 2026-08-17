@@ -1,0 +1,34 @@
+<div class="country-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Países</h1>
+      <p class="page-subtitle">Listado de países del sistema</p>
+    </div>
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="countries()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar países...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && countries().length === 0) {
+    <app-empty-state
+      icon="public"
+      title="Sin países"
+      message="No se encontraron países registrados"
+      [showAction]="false"
+    />
+  }
+</div>

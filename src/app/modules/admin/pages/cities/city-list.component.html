@@ -1,0 +1,51 @@
+<div class="city-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Ciudades</h1>
+      <p class="page-subtitle">Listado de ciudades del sistema</p>
+    </div>
+  </div>
+
+  <div class="filters-row">
+    <mat-form-field appearance="outline" class="state-filter">
+      <mat-label>Filtrar por Departamento</mat-label>
+      <mat-select
+        [value]="selectedStateCode()"
+        (selectionChange)="onStateCodeFilterChange($event.value)"
+      >
+        <mat-option [value]="null">Todos los departamentos</mat-option>
+        @for (code of stateCodes(); track code) {
+          <mat-option [value]="code">
+            {{ code }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="cities()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar ciudades...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && cities().length === 0) {
+    <app-empty-state
+      icon="location_city"
+      title="Sin ciudades"
+      message="No se encontraron ciudades registradas"
+      [showAction]="false"
+    />
+  }
+</div>

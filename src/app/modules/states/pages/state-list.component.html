@@ -1,0 +1,51 @@
+<div class="state-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Departamentos</h1>
+      <p class="page-subtitle">Listado de departamentos del sistema</p>
+    </div>
+  </div>
+
+  <div class="filters-row">
+    <mat-form-field appearance="outline" class="country-filter">
+      <mat-label>Filtrar por País</mat-label>
+      <mat-select
+        [value]="selectedCountryId()"
+        (selectionChange)="onCountryFilterChange($event.value)"
+      >
+        <mat-option [value]="null">Todos los países</mat-option>
+        @for (country of countries(); track country.id) {
+          <mat-option [value]="country.id">
+            {{ country.countryName }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="states()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar departamentos...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && states().length === 0) {
+    <app-empty-state
+      icon="map"
+      title="Sin departamentos"
+      message="No se encontraron departamentos registrados"
+      [showAction]="false"
+    />
+  }
+</div>

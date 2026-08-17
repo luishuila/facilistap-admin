@@ -1,0 +1,40 @@
+<div class="category-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Categorías</h1>
+      <p class="page-subtitle">Administre las categorías del sistema</p>
+    </div>
+    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      <span>Nueva Categoría</span>
+    </button>
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="categories()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar categorías...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && categories().length === 0) {
+    <app-empty-state
+      icon="category"
+      title="Sin categorías"
+      message="No se encontraron categorías registradas"
+      [showAction]="true"
+      actionLabel="Crear Categoría"
+      (action)="onAdd()"
+    />
+  }
+</div>

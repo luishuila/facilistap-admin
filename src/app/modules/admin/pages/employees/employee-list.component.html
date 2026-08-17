@@ -1,0 +1,40 @@
+<div class="employee-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Empleados</h1>
+      <p class="page-subtitle">Administre los empleados del sistema</p>
+    </div>
+    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      <span>Nuevo Empleado</span>
+    </button>
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="employees()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar empleados...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && employees().length === 0) {
+    <app-empty-state
+      icon="people"
+      title="Sin empleados"
+      message="No se encontraron empleados registrados"
+      [showAction]="true"
+      actionLabel="Crear Empleado"
+      (action)="onAdd()"
+    />
+  }
+</div>

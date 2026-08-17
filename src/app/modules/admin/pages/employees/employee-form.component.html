@@ -1,0 +1,107 @@
+<div class="form-dialog">
+  <div class="dialog-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <mat-icon>{{ isEdit ? 'edit' : 'person_add' }}</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">{{ isEdit ? 'Editar Empleado' : 'Nuevo Empleado' }}</h2>
+        <p class="dialog-subtitle">
+          {{ isEdit ? 'Modifique los datos del empleado' : 'Complete los datos para registrar un empleado' }}
+        </p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="onCancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Nombre</mat-label>
+        <mat-icon matPrefix>badge</mat-icon>
+        <input matInput formControlName="firstName" placeholder="Ej: Juan" autocomplete="off" />
+        @if (form.controls['firstName'].hasError('required') && form.controls['firstName'].touched) {
+          <mat-error>El nombre es requerido</mat-error>
+        }
+        @if (form.controls['firstName'].hasError('maxlength')) {
+          <mat-error>Máximo 100 caracteres</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="half-width">
+        <mat-label>Apellido</mat-label>
+        <mat-icon matPrefix>badge</mat-icon>
+        <input matInput formControlName="lastName" placeholder="Ej: Pérez" autocomplete="off" />
+        @if (form.controls['lastName'].hasError('required') && form.controls['lastName'].touched) {
+          <mat-error>El apellido es requerido</mat-error>
+        }
+        @if (form.controls['lastName'].hasError('maxlength')) {
+          <mat-error>Máximo 100 caracteres</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Email</mat-label>
+      <mat-icon matPrefix>email</mat-icon>
+      <input matInput formControlName="email" type="email" placeholder="Ej: juan@empresa.com" autocomplete="off" />
+      @if (form.controls['email'].hasError('required') && form.controls['email'].touched) {
+        <mat-error>El email es requerido</mat-error>
+      }
+      @if (form.controls['email'].hasError('email') && form.controls['email'].touched) {
+        <mat-error>Ingrese un email válido</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Teléfono</mat-label>
+      <mat-icon matPrefix>phone</mat-icon>
+      <input matInput formControlName="phone" placeholder="Ej: +57 300 123 4567" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Rol</mat-label>
+      <mat-icon matPrefix>manage_accounts</mat-icon>
+      <mat-select formControlName="roleId">
+        @if (rolesLoading()) {
+          <mat-option disabled>
+            Cargando roles...
+          </mat-option>
+        }
+        @for (role of roles(); track role.id) {
+          <mat-option [value]="role.id">
+            {{ role.name }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (form.controls['roleId'].hasError('required') && form.controls['roleId'].touched) {
+        <mat-error>El rol es requerido</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Fecha de Contratación</mat-label>
+      <mat-icon matPrefix>calendar_today</mat-icon>
+      <input matInput [matDatepicker]="picker" formControlName="hireDate" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+      @if (form.controls['hireDate'].hasError('required') && form.controls['hireDate'].touched) {
+        <mat-error>La fecha de contratación es requerida</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="form-actions">
+      <button mat-stroked-button type="button" class="cancel-btn" (click)="onCancel()">
+        Cancelar
+      </button>
+      <button mat-flat-button color="primary" type="submit" class="save-btn" [disabled]="form.invalid || submitting">
+        @if (submitting) {
+          <mat-icon class="spin">sync</mat-icon>
+        }
+        {{ isEdit ? 'Guardar Cambios' : 'Crear Empleado' }}
+      </button>
+    </div>
+  </form>
+</div>

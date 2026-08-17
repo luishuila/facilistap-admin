@@ -1,0 +1,51 @@
+<div class="permission-list-page">
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">Gestión de Permisos</h1>
+      <p class="page-subtitle">Administre los permisos del sistema</p>
+    </div>
+    <div class="header-right">
+      <mat-form-field appearance="outline" class="module-filter" subscriptSizing="dynamic">
+        <mat-label>Módulo</mat-label>
+        <mat-select [ngModel]="moduleFilter()" (ngModelChange)="onModuleFilterChange($event)">
+          <mat-option [value]="''">Todos los módulos</mat-option>
+          @for (module of availableModules(); track module) {
+            <mat-option [value]="module">{{ module }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+        <mat-icon>add</mat-icon>
+        <span>Nuevo Permiso</span>
+      </button>
+    </div>
+  </div>
+
+  <app-data-table
+    [columns]="columns"
+    [data]="permissions()"
+    [totalItems]="totalItems()"
+    [pageSize]="pageSize()"
+    [loading]="loading()"
+    [showSearch]="true"
+    [searchPlaceholder]="'Buscar permisos por nombre...'"
+    [showExport]="false"
+    [title]="''"
+    [showAddButton]="false"
+    (sortChange)="onSortChange($event)"
+    (pageChange)="onPageChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (rowAction)="onRowAction($event)"
+  />
+
+  @if (!loading() && permissions().length === 0) {
+    <app-empty-state
+      icon="security"
+      title="Sin permisos"
+      message="No se encontraron permisos registrados"
+      [showAction]="true"
+      actionLabel="Crear Permiso"
+      (action)="onAdd()"
+    />
+  }
+</div>

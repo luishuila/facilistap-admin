@@ -143,6 +143,12 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
                   >
                     {{ row[column.key] ? 'check_circle' : 'cancel' }}
                   </mat-icon>
+                } @else if (column.type === 'image') {
+                  @if (row[column.key]) {
+                    <img class="cell-image" [src]="row[column.key]" alt="" loading="lazy" />
+                  } @else {
+                    <span class="cell-image cell-image--empty"><mat-icon>image</mat-icon></span>
+                  }
                 } @else if (column.type === 'date') {
                   {{ row[column.key] | date: (column.format || 'dd/MM/yyyy') }}
                 } @else if (column.type === 'actions') {
@@ -310,6 +316,25 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
         .mat-mdc-row:hover {
           background: #f8fafc;
+        }
+      }
+
+      .cell-image {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 36px;
+        border-radius: 6px;
+        object-fit: cover;
+        vertical-align: middle;
+        background: #f1f5f9;
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+          color: #cbd5e1;
         }
       }
 

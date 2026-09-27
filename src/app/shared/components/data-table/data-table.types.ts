@@ -3,7 +3,7 @@ export interface TableColumn {
   label: string;
   sortable?: boolean;
   filterable?: boolean;
-  type?: 'text' | 'number' | 'date' | 'boolean' | 'status' | 'actions';
+  type?: 'text' | 'number' | 'date' | 'boolean' | 'status' | 'image' | 'actions';
   width?: string;
   align?: 'left' | 'center' | 'right';
   format?: string;

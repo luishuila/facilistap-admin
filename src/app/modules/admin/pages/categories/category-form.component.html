@@ -11,54 +11,112 @@
         </p>
       </div>
     </div>
-    <button mat-icon-button class="close-btn" (click)="onCancel()">
+    <button mat-icon-button class="close-btn" (click)="onCancel()" [disabled]="submitting()">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body">
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Nombre</mat-label>
-      <mat-icon matPrefix>badge</mat-icon>
-      <input matInput formControlName="name" placeholder="Ej: Restaurantes" autocomplete="off" />
-      @if (form.controls['name'].hasError('required') && form.controls['name'].touched) {
-        <mat-error>El nombre es requerido</mat-error>
-      }
-      @if (form.controls['name'].hasError('maxlength')) {
-        <mat-error>Máximo 100 caracteres</mat-error>
-      }
-    </mat-form-field>
+    <!-- Imagen (se sube a S3 al guardar) -->
+    <section class="section">
+      <span class="section-label">Imagen</span>
+      <input #fileInput type="file" hidden [accept]="acceptedTypes" (change)="onFileSelected($event)" />
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Descripción</mat-label>
-      <mat-icon matPrefix>description</mat-icon>
-      <textarea matInput formControlName="description" placeholder="Descripción de la categoría" rows="3"></textarea>
-    </mat-form-field>
+      @if (previewUrl(); as preview) {
+        <div class="image-preview">
+          <img [src]="preview" alt="Imagen de la categoría" />
+          <div class="image-actions">
+            <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="submitting()">
+              <mat-icon>photo_camera</mat-icon>
+              Cambiar
+            </button>
+            <button mat-stroked-button type="button" class="danger" (click)="removeImage()" [disabled]="submitting()">
+              <mat-icon>delete</mat-icon>
+              Quitar
+            </button>
+          </div>
+        </div>
+      } @else {
+        <button
+          type="button"
+          class="drop-zone"
+          [class.drag-over]="dragOver()"
+          (click)="fileInput.click()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="dragOver.set(false)"
+          (drop)="onDrop($event)"
+        >
+          <mat-icon>cloud_upload</mat-icon>
+          <span class="drop-title">Arrastre una imagen o haga clic para seleccionar</span>
+          <span class="drop-hint">JPG, PNG, WEBP o GIF · máximo 5 MB</span>
+        </button>
+      }
+    </section>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Ícono</mat-label>
-      <mat-icon matPrefix>emoji_symbols</mat-icon>
-      <mat-select formControlName="icon">
-        <mat-option [value]="''">
-          <em>Sin ícono</em>
-        </mat-option>
-        @for (icon of availableIcons; track icon.name) {
-          <mat-option [value]="icon.name">
-            <div class="icon-option">
-              <mat-icon>{{ icon.name }}</mat-icon>
-              <span>{{ icon.label }}</span>
+    <!-- Nombre y descripción por idioma -->
+    <section class="section">
+      <span class="section-label">Nombre y descripción</span>
+      <mat-tab-group mat-stretch-tabs="false" animationDuration="150ms" class="lang-tabs">
+        @for (lang of langs; track lang.code) {
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <span class="lang-code">{{ lang.code | uppercase }}</span>
+              {{ lang.label }}
+              @if (langHasError(lang.code)) {
+                <mat-icon class="tab-error">error</mat-icon>
+              }
+            </ng-template>
+
+            <div class="lang-fields">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Nombre ({{ lang.code }}){{ lang.code === 'es' ? ' *' : '' }}</mat-label>
+                <mat-icon matPrefix>badge</mat-icon>
+                <input
+                  matInput
+                  [formControl]="$any(nameControl(lang.code))"
+                  [placeholder]="lang.code === 'es' ? 'Ej: Belleza' : 'Ex: Beauty'"
+                  autocomplete="off"
+                />
+                @if (nameControl(lang.code).hasError('required')) {
+                  <mat-error>El nombre en español es requerido</mat-error>
+                }
+                @if (nameControl(lang.code).hasError('maxlength')) {
+                  <mat-error>Máximo 100 caracteres</mat-error>
+                }
+                @if (lang.code !== 'es') {
+                  <mat-hint>Opcional. Si se deja vacío la app muestra el nombre en español</mat-hint>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Descripción ({{ lang.code }})</mat-label>
+                <mat-icon matPrefix>description</mat-icon>
+                <textarea
+                  matInput
+                  [formControl]="$any(descriptionControl(lang.code))"
+                  [placeholder]="lang.code === 'es' ? 'Descripción de la categoría' : 'Category description'"
+                  rows="3"
+                ></textarea>
+                @if (descriptionControl(lang.code).hasError('maxlength')) {
+                  <mat-error>Máximo 1000 caracteres</mat-error>
+                }
+              </mat-form-field>
             </div>
-          </mat-option>
+          </mat-tab>
         }
-      </mat-select>
-    </mat-form-field>
+      </mat-tab-group>
+    </section>
+
+    <mat-slide-toggle formControlName="isAsset" color="primary" class="active-toggle">
+      Categoría activa (visible en la app)
+    </mat-slide-toggle>
 
     <div class="form-actions">
-      <button mat-stroked-button type="button" class="cancel-btn" (click)="onCancel()">
+      <button mat-stroked-button type="button" class="cancel-btn" (click)="onCancel()" [disabled]="submitting()">
         Cancelar
       </button>
-      <button mat-flat-button color="primary" type="submit" class="save-btn" [disabled]="form.invalid || submitting">
-        @if (submitting) {
+      <button mat-flat-button color="primary" type="submit" class="save-btn" [disabled]="submitting()">
+        @if (submitting()) {
           <mat-icon class="spin">sync</mat-icon>
         }
         {{ isEdit ? 'Guardar Cambios' : 'Crear Categoría' }}

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiBaseService } from '../../../core/services/api-base.service';
-import { Subcategory } from '../../../core/models/subcategory.interface';
+import { Subcategory, SubcategoryPayload } from '../../../core/models/subcategory.interface';
 import { ApiResponse, PaginatedResponse } from '../../../core/models/api-response.interface';
 import { PaginatedQuery } from '../../../core/models/paginated-query.interface';
 
@@ -13,19 +13,16 @@ export class SubcategoryService extends ApiBaseService {
   getById(id: number): Observable<ApiResponse<Subcategory>> {
     return this._getById<Subcategory>('subcategories', id);
   }
-  create(data: Partial<Subcategory>): Observable<ApiResponse<Subcategory>> {
+  create(data: SubcategoryPayload): Observable<ApiResponse<Subcategory>> {
     return this._create<Subcategory>('subcategories', data);
   }
-  update(id: number, data: Partial<Subcategory>): Observable<ApiResponse<Subcategory>> {
+  update(id: number, data: Partial<SubcategoryPayload>): Observable<ApiResponse<Subcategory>> {
     return this._patch<Subcategory>('subcategories', id, data);
   }
   delete(id: number): Observable<ApiResponse<void>> {
     return this._delete<void>('subcategories', id);
   }
-  toggle(id: number): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(`${this.baseUrl}/subcategories/${id}`, {});
-  }
-  getByCategory(categoryId: number): Observable<ApiResponse<Subcategory[]>> {
-    return this.http.get<ApiResponse<Subcategory[]>>(`${this.baseUrl}/subcategories?categoryId=${categoryId}`);
+  toggle(id: number): Observable<ApiResponse<Subcategory>> {
+    return this.http.patch<ApiResponse<Subcategory>>(`${this.baseUrl}/subcategories/${id}/toggle`, {});
   }
 }

@@ -1,7 +1,8 @@
 import {
   Component,
-  OnInit,
+  DestroyRef,
   inject,
+  signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -14,22 +15,29 @@ import {
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Observable, of, switchMap } from 'rxjs';
 
 import { CategoryService } from '../../services/category.service';
-import { Category } from '../../../../core/models/category.interface';
+import {
+  Category,
+  CategoryLang,
+  CategoryPayload,
+  CATEGORY_LANGS,
+  LocalizedText,
+} from '../../../../core/models/category.interface';
 
 export interface CategoryFormData {
   category?: Category;
 }
 
-interface MaterialIcon {
-  name: string;
-  label: string;
-}
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 @Component({
   selector: 'app-category-form',
@@ -40,16 +48,17 @@ interface MaterialIcon {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MatIconModule,
     MatButtonModule,
+    MatTabsModule,
+    MatSlideToggleModule,
     MatSnackBarModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './category-form.component.html',
   styleUrls: ['./category-form.component.scss'],
 })
-export class CategoryFormComponent implements OnInit {
+export class CategoryFormComponent {
   private readonly dialogRef = inject<
     MatDialogRef<CategoryFormComponent, boolean>
   >(MatDialogRef<CategoryFormComponent, boolean>);
@@ -57,95 +66,162 @@ export class CategoryFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly categoryService = inject(CategoryService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
 
+  protected readonly langs = CATEGORY_LANGS;
+  protected readonly acceptedTypes = ALLOWED_IMAGE_TYPES.join(',');
   protected readonly form: FormGroup;
   protected readonly isEdit: boolean;
-  protected readonly availableIcons: MaterialIcon[] = [
-    { name: 'category', label: 'Categoría' },
-    { name: 'restaurant', label: 'Restaurante' },
-    { name: 'shopping_cart', label: 'Compras' },
-    { name: 'local_grocery_store', label: 'Mercado' },
-    { name: 'local_bar', label: 'Bar' },
-    { name: 'local_cafe', label: 'Cafetería' },
-    { name: 'local_pizza', label: 'Pizzería' },
-    { name: 'fastfood', label: 'Comida rápida' },
-    { name: 'bakery_dining', label: 'Panadería' },
-    { name: 'liquor', label: 'Licores' },
-    { name: 'local_pharmacy', label: 'Farmacia' },
-    { name: 'local_hospital', label: 'Salud' },
-    { name: 'fitness_center', label: 'Fitness' },
-    { name: 'pets', label: 'Mascotas' },
-    { name: 'checkroom', label: 'Ropa' },
-    { name: 'hardware', label: 'Ferretería' },
-    { name: 'build', label: 'Construcción' },
-    { name: 'directions_car', label: 'Automotriz' },
-    { name: 'devices', label: 'Electrónica' },
-    { name: 'toys', label: 'Juguetes' },
-    { name: 'menu_book', label: 'Libros' },
-    { name: 'sports_esports', label: 'Deportes' },
-    { name: 'music_note', label: 'Música' },
-    { name: 'movie', label: 'Entretenimiento' },
-  ];
+
+  /** URL ya guardada en S3 (o null si no tiene / se quitó). */
+  protected readonly imageUrl = signal<string | null>(null);
+  /** Archivo elegido que aún no se ha subido; se sube al guardar. */
+  private pendingFile: File | null = null;
+  protected readonly previewUrl = signal<string | null>(null);
+  protected readonly dragOver = signal(false);
+  protected readonly submitting = signal(false);
 
   constructor() {
     const category = this.data?.category;
     this.isEdit = !!category;
+    this.imageUrl.set(category?.img ?? null);
+    this.previewUrl.set(category?.img ?? null);
 
     this.form = this.fb.group({
-      name: [category?.name ?? '', [Validators.required, Validators.maxLength(100)]],
-      description: [category?.description ?? ''],
-      icon: [category?.icon ?? ''],
+      name: this.fb.group({
+        es: [category?.name?.es ?? '', [Validators.required, Validators.maxLength(100)]],
+        en: [category?.name?.en ?? '', [Validators.maxLength(100)]],
+      }),
+      description: this.fb.group({
+        es: [category?.description?.es ?? '', [Validators.maxLength(1000)]],
+        en: [category?.description?.en ?? '', [Validators.maxLength(1000)]],
+      }),
+      isAsset: [category?.isActive ?? true],
     });
+
+    this.destroyRef.onDestroy(() => this.revokePreview());
   }
 
-  ngOnInit(): void {}
+  protected nameControl(lang: CategoryLang) {
+    return this.form.get(['name', lang])!;
+  }
 
-  protected onSubmit(): void {
-    if (this.form.invalid || this._submitting) {
+  protected descriptionControl(lang: CategoryLang) {
+    return this.form.get(['description', lang])!;
+  }
+
+  protected langHasError(lang: CategoryLang): boolean {
+    const name = this.nameControl(lang);
+    const desc = this.descriptionControl(lang);
+    return (name.invalid && name.touched) || (desc.invalid && desc.touched);
+  }
+
+  // ── Imagen ────────────────────────────────────────────────
+
+  protected onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.setFile(input.files?.[0] ?? null);
+    input.value = '';
+  }
+
+  protected onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.dragOver.set(false);
+    this.setFile(event.dataTransfer?.files?.[0] ?? null);
+  }
+
+  protected onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.dragOver.set(true);
+  }
+
+  protected removeImage(): void {
+    this.revokePreview();
+    this.pendingFile = null;
+    this.imageUrl.set(null);
+    this.previewUrl.set(null);
+  }
+
+  private setFile(file: File | null): void {
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      this.snackBar.open('Formato no permitido. Use JPG, PNG, WEBP o GIF', 'Cerrar', { duration: 4000 });
       return;
     }
+    if (file.size > MAX_IMAGE_BYTES) {
+      this.snackBar.open('La imagen supera 5 MB', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    this.revokePreview();
+    this.pendingFile = file;
+    this.previewUrl.set(URL.createObjectURL(file));
+  }
 
-    this._submitting = true;
+  private revokePreview(): void {
+    const url = this.previewUrl();
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+  }
 
-    const formValue = {
-      name: this.form.value.name?.trim(),
-      description: this.form.value.description?.trim() || '',
-      icon: this.form.value.icon || null,
+  // ── Guardar ───────────────────────────────────────────────
+
+  protected onSubmit(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    if (this.submitting()) return;
+    this.submitting.set(true);
+
+    const image$: Observable<string | null> = this.pendingFile
+      ? this.categoryService.uploadImage(this.pendingFile)
+      : of(this.imageUrl());
+
+    image$
+      .pipe(
+        switchMap((img) => {
+          const payload = this.buildPayload(img);
+          return this.isEdit
+            ? this.categoryService.update(this.data!.category!.id, payload)
+            : this.categoryService.create(payload);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.isEdit ? 'Categoría actualizada correctamente' : 'Categoría creada correctamente',
+            'Cerrar',
+            { duration: 3000 },
+          );
+          this.dialogRef.close(true);
+        },
+        error: (err: Error) => {
+          this.submitting.set(false);
+          this.snackBar.open(err?.message || 'Error al guardar la categoría', 'Cerrar', { duration: 5000 });
+        },
+      });
+  }
+
+  private buildPayload(img: string | null): CategoryPayload {
+    const value = this.form.getRawValue();
+    return {
+      name: this.cleanText(value.name),
+      description: this.cleanText(value.description),
+      img,
+      isAsset: !!value.isAsset,
     };
+  }
 
-    const request$ = this.isEdit
-      ? this.categoryService.update(this.data!.category!.id, formValue)
-      : this.categoryService.create(formValue);
-
-    request$.subscribe({
-      next: () => {
-        this.snackBar.open(
-          this.isEdit
-            ? 'Categoría actualizada correctamente'
-            : 'Categoría creada correctamente',
-          'Cerrar',
-          { duration: 3000 }
-        );
-        this.dialogRef.close(true);
-      },
-      error: () => {
-        this._submitting = false;
-        this.snackBar.open(
-          'Error al guardar la categoría',
-          'Cerrar',
-          { duration: 5000 }
-        );
-      },
-    });
+  private cleanText(text: LocalizedText): LocalizedText {
+    const result: LocalizedText = {};
+    for (const { code } of CATEGORY_LANGS) {
+      const trimmed = text?.[code]?.trim();
+      if (trimmed) result[code] = trimmed;
+    }
+    return result;
   }
 
   protected onCancel(): void {
     this.dialogRef.close(false);
-  }
-
-  private _submitting = false;
-
-  protected get submitting(): boolean {
-    return this._submitting;
   }
 }

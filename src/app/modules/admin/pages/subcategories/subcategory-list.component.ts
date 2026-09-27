@@ -24,7 +24,7 @@ import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog
 import { SubcategoryService } from '../../services/subcategory.service';
 import { CategoryService } from '../../services/category.service';
 import { Subcategory } from '../../../../core/models/subcategory.interface';
-import { Category } from '../../../../core/models/category.interface';
+import { Category, localizedText } from '../../../../core/models/category.interface';
 import {
   TableColumn,
   SortEvent,
@@ -32,6 +32,14 @@ import {
   RowAction,
 } from '../../../../shared/components/data-table/data-table.types';
 import { SubcategoryFormComponent } from './subcategory-form.component';
+
+/** Fila de la tabla: la subcategoría con sus textos ya resueltos por idioma. */
+interface SubcategoryRow extends Subcategory {
+  nameEs: string;
+  nameEn: string;
+  descriptionEs: string;
+  categoryNameEs: string;
+}
 
 @Component({
   selector: 'app-subcategory-list',
@@ -54,6 +62,8 @@ import { SubcategoryFormComponent } from './subcategory-form.component';
   styleUrls: ['./subcategory-list.component.scss'],
 })
 export class SubcategoryListComponent implements OnInit {
+  protected readonly categoryName = localizedText;
+
   private readonly subcategoryService = inject(SubcategoryService);
   private readonly categoryService = inject(CategoryService);
   private readonly dialog = inject(MatDialog);
@@ -61,7 +71,7 @@ export class SubcategoryListComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly subcategories = signal<Subcategory[]>([]);
+  protected readonly subcategories = signal<SubcategoryRow[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly totalItems = signal(0);
   protected readonly loading = signal(false);
@@ -74,9 +84,11 @@ export class SubcategoryListComponent implements OnInit {
 
   protected readonly columns: TableColumn[] = [
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
-    { key: 'name', label: 'Nombre', sortable: true },
-    { key: 'description', label: 'Descripción' },
-    { key: 'categoryName', label: 'Categoría', sortable: true },
+    { key: 'img', label: 'Imagen', type: 'image', width: '90px', align: 'center' },
+    { key: 'nameEs', label: 'Nombre (ES)' },
+    { key: 'nameEn', label: 'Nombre (EN)' },
+    { key: 'descriptionEs', label: 'Descripción' },
+    { key: 'categoryNameEs', label: 'Categoría' },
     {
       key: 'isActive',
       label: 'Estado',
@@ -134,53 +146,42 @@ export class SubcategoryListComponent implements OnInit {
 
     const categoryId = this.categoryFilter.value;
 
-    if (categoryId) {
-      this.subcategoryService
-        .getByCategory(categoryId)
-        .pipe(
-          finalize(() => this.loading.set(false)),
-          takeUntilDestroyed(this.destroyRef)
-        )
-        .subscribe({
-          next: (res) => {
-            this.subcategories.set(res?.data ?? []);
-            this.totalItems.set(res?.data?.length ?? 0);
-          },
-          error: () => {
-            this.subcategories.set([]);
-            this.totalItems.set(0);
-            this.snackBar.open('Error al cargar subcategorías', 'Cerrar', {
-              duration: 5000,
-            });
-          },
-        });
-    } else {
-      this.subcategoryService
-        .getAll({
-          page: this.currentPage() + 1,
-          limit: this.pageSize(),
-          search: this.searchTerm() || undefined,
-          sortBy: this.sortActive() || undefined,
-          sortOrder: this.sortDirection(),
-        })
-        .pipe(
-          finalize(() => this.loading.set(false)),
-          takeUntilDestroyed(this.destroyRef)
-        )
-        .subscribe({
-          next: (res) => {
-            this.subcategories.set(res?.items ?? []);
-            this.totalItems.set(res?.total ?? 0);
-          },
-          error: () => {
-            this.subcategories.set([]);
-            this.totalItems.set(0);
-            this.snackBar.open('Error al cargar subcategorías', 'Cerrar', {
-              duration: 5000,
-            });
-          },
-        });
-    }
+    this.subcategoryService
+      .getAll({
+        page: this.currentPage() + 1,
+        limit: this.pageSize(),
+        search: this.searchTerm() || undefined,
+        sortBy: this.sortActive() || undefined,
+        sortOrder: this.sortDirection(),
+        filters: categoryId ? { categoryId } : undefined,
+      })
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (res) => {
+          this.subcategories.set((res?.items ?? []).map((s) => this.toRow(s)));
+          this.totalItems.set(res?.total ?? 0);
+        },
+        error: () => {
+          this.subcategories.set([]);
+          this.totalItems.set(0);
+          this.snackBar.open('Error al cargar subcategorías', 'Cerrar', {
+            duration: 5000,
+          });
+        },
+      });
+  }
+
+  private toRow(subcategory: Subcategory): SubcategoryRow {
+    return {
+      ...subcategory,
+      nameEs: localizedText(subcategory.name, 'es'),
+      nameEn: subcategory.name?.en ?? '',
+      descriptionEs: localizedText(subcategory.description, 'es'),
+      categoryNameEs: localizedText(subcategory.categoryName, 'es'),
+    };
   }
 
   protected onSortChange(event: SortEvent): void {
@@ -226,7 +227,8 @@ export class SubcategoryListComponent implements OnInit {
       { subcategory?: Subcategory },
       boolean
     >(SubcategoryFormComponent, {
-      width: '520px',
+      width: '640px',
+      maxWidth: '95vw',
       disableClose: true,
       autoFocus: false,
       data: { subcategory },
@@ -268,7 +270,7 @@ export class SubcategoryListComponent implements OnInit {
     this.confirmDialog
       .confirm({
         title: 'Eliminar Subcategoría',
-        message: `¿Está seguro de eliminar la subcategoría "${subcategory.name}"? Esta acción no se puede deshacer.`,
+        message: `¿Está seguro de eliminar la subcategoría "${localizedText(subcategory.name)}"? Esta acción no se puede deshacer.`,
         confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         icon: 'delete',
@@ -293,8 +295,8 @@ export class SubcategoryListComponent implements OnInit {
           });
           this.loadSubcategories();
         },
-        error: () => {
-          this.snackBar.open('Error al eliminar subcategoría', 'Cerrar', {
+        error: (err: Error) => {
+          this.snackBar.open(err?.message || 'Error al eliminar subcategoría', 'Cerrar', {
             duration: 5000,
           });
         },

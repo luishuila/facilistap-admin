@@ -19,8 +19,8 @@
         @for (cat of categories(); track cat.id) {
           <mat-option [value]="cat.id">
             <div class="category-option">
-              <mat-icon>{{ cat.icon || 'folder' }}</mat-icon>
-              <span>{{ cat.name }}</span>
+              <mat-icon>folder</mat-icon>
+              <span>{{ categoryName(cat.name) }}</span>
             </div>
           </mat-option>
         }

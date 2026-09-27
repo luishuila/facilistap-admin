@@ -20,9 +20,16 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
 import { CategoryService } from '../../services/category.service';
-import { Category } from '../../../../core/models/category.interface';
+import { Category, localizedText } from '../../../../core/models/category.interface';
 import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared/components/data-table/data-table.types';
 import { CategoryFormComponent } from './category-form.component';
+
+/** Fila de la tabla: la categoria con sus textos ya resueltos por idioma. */
+interface CategoryRow extends Category {
+  nameEs: string;
+  nameEn: string;
+  descriptionEs: string;
+}
 
 @Component({
   selector: 'app-category-list',
@@ -49,7 +56,7 @@ export class CategoryListComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly categories = signal<Category[]>([]);
+  protected readonly categories = signal<CategoryRow[]>([]);
   protected readonly totalItems = signal(0);
   protected readonly loading = signal(false);
   protected readonly currentPage = signal(0);
@@ -60,9 +67,10 @@ export class CategoryListComponent implements OnInit {
 
   protected readonly columns: TableColumn[] = [
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
-    { key: 'name', label: 'Nombre', sortable: true },
-    { key: 'description', label: 'Descripción' },
-    { key: 'icon', label: 'Ícono', width: '80px', align: 'center' },
+    { key: 'img', label: 'Imagen', type: 'image', width: '90px', align: 'center' },
+    { key: 'nameEs', label: 'Nombre (ES)' },
+    { key: 'nameEn', label: 'Nombre (EN)' },
+    { key: 'descriptionEs', label: 'Descripción' },
     { key: 'subcategoriesCount', label: 'Subcategorías', sortable: true, type: 'number', width: '120px', align: 'center' },
     {
       key: 'isActive',
@@ -100,7 +108,7 @@ export class CategoryListComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.categories.set(res?.items ?? []);
+          this.categories.set((res?.items ?? []).map((c) => this.toRow(c)));
           this.totalItems.set(res?.total ?? 0);
         },
         error: () => {
@@ -109,6 +117,15 @@ export class CategoryListComponent implements OnInit {
           this.snackBar.open('Error al cargar categorías', 'Cerrar', { duration: 5000 });
         },
       });
+  }
+
+  private toRow(category: Category): CategoryRow {
+    return {
+      ...category,
+      nameEs: localizedText(category.name, 'es'),
+      nameEn: category.name?.en ?? '',
+      descriptionEs: localizedText(category.description, 'es'),
+    };
   }
 
   protected onSortChange(event: SortEvent): void {
@@ -154,7 +171,8 @@ export class CategoryListComponent implements OnInit {
       { category?: Category },
       boolean
     >(CategoryFormComponent, {
-      width: '520px',
+      width: '640px',
+      maxWidth: '95vw',
       disableClose: true,
       autoFocus: false,
       data: { category },
@@ -194,7 +212,7 @@ export class CategoryListComponent implements OnInit {
     this.confirmDialog
       .confirm({
         title: 'Eliminar Categoría',
-        message: `¿Está seguro de eliminar la categoría "${category.name}"? Esta acción no se puede deshacer.`,
+        message: `¿Está seguro de eliminar la categoría "${localizedText(category.name)}"? Esta acción no se puede deshacer.`,
         confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         icon: 'delete',
@@ -217,8 +235,8 @@ export class CategoryListComponent implements OnInit {
           this.snackBar.open('Categoría eliminada correctamente', 'Cerrar', { duration: 3000 });
           this.loadCategories();
         },
-        error: () => {
-          this.snackBar.open('Error al eliminar categoría', 'Cerrar', { duration: 5000 });
+        error: (err: Error) => {
+          this.snackBar.open(err?.message || 'Error al eliminar categoría', 'Cerrar', { duration: 5000 });
         },
       });
   }

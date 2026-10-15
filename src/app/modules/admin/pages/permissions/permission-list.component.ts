@@ -90,7 +90,7 @@ export class PermissionListComponent implements OnInit {
       align: 'center',
       statusMap: {
         CREATE: { label: 'Create', color: '#22c55e' },
-        READ: { label: 'Read', color: '#3b82f6' },
+        READ: { label: 'Read', color: '#1daeff' },
         UPDATE: { label: 'Update', color: '#f59e0b' },
         DELETE: { label: 'Delete', color: '#ef4444' },
       },
@@ -144,7 +144,7 @@ export class PermissionListComponent implements OnInit {
           this.totalItems.set(res?.total ?? 0);
 
           const dynamicModuleMap: Record<string, { label: string; color: string }> = {};
-          const moduleColors = ['#6366f1', '#8b5cf6', '#06b6d4', '#14b8a6', '#f97316', '#ec4899'];
+          const moduleColors = ['#009bff', '#8b5cf6', '#06b6d4', '#14b8a6', '#f97316', '#ec4899'];
           const allModules = [...new Set((res?.items ?? []).map((p) => p.module))];
           allModules.forEach((mod, i) => {
             dynamicModuleMap[mod] = {

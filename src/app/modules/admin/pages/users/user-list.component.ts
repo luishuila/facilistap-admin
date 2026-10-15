@@ -25,6 +25,7 @@ import {
   SortEvent,
   PageEvent,
   RowAction,
+  RowActionOption,
 } from '../../../../shared/components/data-table/data-table.types';
 import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
 import { UserService } from '../../services/user.service';
@@ -33,6 +34,7 @@ import { User } from '../../../../core/models/user.interface';
 import { Role } from '../../../../core/models/role.interface';
 import { UserFormComponent } from './user-form.component';
 import { UserChangeRoleComponent } from './user-change-role.component';
+import { UserSessionsComponent } from './user-sessions.component';
 
 @Component({
   selector: 'app-user-list',
@@ -101,6 +103,7 @@ import { UserChangeRoleComponent } from './user-change-role.component';
         [searchPlaceholder]="'Buscar por nombre, email o username...'"
         [showExport]="true"
         [showAddButton]="false"
+        [rowActions]="rowActions"
         (sortChange)="onSortChange($event)"
         (pageChange)="onPageChange($event)"
         (searchChange)="onSearchChange($event)"
@@ -113,7 +116,7 @@ import { UserChangeRoleComponent } from './user-change-role.component';
       :host {
         display: block;
         padding: 24px;
-        background: #f1f5f9;
+        background: var(--fac-bg);
         min-height: 100%;
       }
 
@@ -193,6 +196,14 @@ export class UserListComponent implements OnInit {
   protected readonly searchTerm = signal('');
   protected readonly sortActive = signal('');
   protected readonly sortDirection = signal<'asc' | 'desc' | ''>('');
+
+  protected readonly rowActions: RowActionOption[] = [
+    { action: 'edit', label: 'Editar', icon: 'edit' },
+    { action: 'view', label: 'Cambiar rol', icon: 'manage_accounts' },
+    { action: 'sessions', label: 'Sesiones / cerrar sesión', icon: 'devices' },
+    { action: 'toggle', label: 'Activar/Desactivar', icon: 'toggle_on' },
+    { action: 'delete', label: 'Eliminar', icon: 'delete', danger: true },
+  ];
 
   protected readonly columns: TableColumn[] = [
     { key: 'id', label: 'ID', sortable: true, width: '80px' },
@@ -340,6 +351,9 @@ export class UserListComponent implements OnInit {
       case 'view':
         this.openChangeRoleDialog(row);
         break;
+      case 'sessions':
+        this.dialog.open(UserSessionsComponent, { width: '620px', maxWidth: '95vw', autoFocus: false, data: row });
+        break;
       case 'toggle':
         this.handleToggle(row);
         break;
@@ -454,7 +468,7 @@ export class UserListComponent implements OnInit {
     this.confirmDialog
       .confirm({
         title: 'Bloquear Usuario',
-        message: `¿Está seguro de bloquear al usuario "${this.userDisplayName(user)}"? No podrá acceder al sistema.`,
+        message: `¿Está seguro de bloquear al usuario "${this.userDisplayName(user)}"? Se cerrarán todas sus sesiones y no podrá iniciar sesión hasta que lo desbloquee.`,
         confirmText: 'Bloquear',
         icon: 'block',
         color: '#f59e0b',
@@ -473,8 +487,8 @@ export class UserListComponent implements OnInit {
                 });
                 this.loadUsers();
               },
-              error: () => {
-                this.snackBar.open('Error al bloquear usuario', 'Cerrar', {
+              error: (err: Error) => {
+                this.snackBar.open(err?.message || 'Error al bloquear usuario', 'Cerrar', {
                   duration: 5000,
                   panelClass: 'snackbar-error',
                 });
@@ -507,8 +521,8 @@ export class UserListComponent implements OnInit {
                 });
                 this.loadUsers();
               },
-              error: () => {
-                this.snackBar.open('Error al desbloquear usuario', 'Cerrar', {
+              error: (err: Error) => {
+                this.snackBar.open(err?.message || 'Error al desbloquear usuario', 'Cerrar', {
                   duration: 5000,
                   panelClass: 'snackbar-error',
                 });

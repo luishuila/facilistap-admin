@@ -17,68 +17,36 @@
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body">
-    <div class="form-row">
-      <mat-form-field appearance="outline" class="half-width">
-        <mat-label>Nombre</mat-label>
-        <mat-icon matPrefix>badge</mat-icon>
-        <input matInput formControlName="firstName" placeholder="Ej: Juan" autocomplete="off" />
-        @if (form.controls['firstName'].hasError('required') && form.controls['firstName'].touched) {
-          <mat-error>El nombre es requerido</mat-error>
-        }
-        @if (form.controls['firstName'].hasError('maxlength')) {
-          <mat-error>Máximo 100 caracteres</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="half-width">
-        <mat-label>Apellido</mat-label>
-        <mat-icon matPrefix>badge</mat-icon>
-        <input matInput formControlName="lastName" placeholder="Ej: Pérez" autocomplete="off" />
-        @if (form.controls['lastName'].hasError('required') && form.controls['lastName'].touched) {
-          <mat-error>El apellido es requerido</mat-error>
-        }
-        @if (form.controls['lastName'].hasError('maxlength')) {
-          <mat-error>Máximo 100 caracteres</mat-error>
-        }
-      </mat-form-field>
-    </div>
-
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Email</mat-label>
-      <mat-icon matPrefix>email</mat-icon>
-      <input matInput formControlName="email" type="email" placeholder="Ej: juan@empresa.com" autocomplete="off" />
-      @if (form.controls['email'].hasError('required') && form.controls['email'].touched) {
-        <mat-error>El email es requerido</mat-error>
-      }
-      @if (form.controls['email'].hasError('email') && form.controls['email'].touched) {
-        <mat-error>Ingrese un email válido</mat-error>
-      }
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Teléfono</mat-label>
-      <mat-icon matPrefix>phone</mat-icon>
-      <input matInput formControlName="phone" placeholder="Ej: +57 300 123 4567" autocomplete="off" />
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Rol</mat-label>
-      <mat-icon matPrefix>manage_accounts</mat-icon>
-      <mat-select formControlName="roleId">
-        @if (rolesLoading()) {
-          <mat-option disabled>
-            Cargando roles...
-          </mat-option>
-        }
-        @for (role of roles(); track role.id) {
-          <mat-option [value]="role.id">
-            {{ role.name }}
-          </mat-option>
+      <mat-label>Usuario</mat-label>
+      <mat-icon matPrefix>person</mat-icon>
+      <mat-select formControlName="usersId">
+        @for (user of users(); track user.id) {
+          <mat-option [value]="user.id">{{ userName(user) }}</mat-option>
         }
       </mat-select>
-      @if (form.controls['roleId'].hasError('required') && form.controls['roleId'].touched) {
-        <mat-error>El rol es requerido</mat-error>
+      @if (form.controls['usersId'].hasError('required') && form.controls['usersId'].touched) {
+        <mat-error>El usuario es requerido</mat-error>
       }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Proveedor</mat-label>
+      <mat-icon matPrefix>store</mat-icon>
+      <mat-select formControlName="providersId">
+        @for (provider of providers(); track provider.id) {
+          <mat-option [value]="provider.id">{{ provider.name }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls['providersId'].hasError('required') && form.controls['providersId'].touched) {
+        <mat-error>El proveedor es requerido</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Cargo</mat-label>
+      <mat-icon matPrefix>work</mat-icon>
+      <input matInput formControlName="position" placeholder="Ej: Estilista" autocomplete="off" />
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">

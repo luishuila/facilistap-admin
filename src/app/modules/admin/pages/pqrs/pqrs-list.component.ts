@@ -24,29 +24,28 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
 import { PqrsService } from '../../services/pqrs.service';
-import { PQRS, PqrsStatus, PqrsType } from '../../../../core/models/pqrs.interface';
+import { Complaint, ComplaintStatus, ComplaintType } from '../../../../core/models/complaint.interface';
 import {
   TableColumn,
   SortEvent,
   PageEvent,
   RowAction,
+  RowActionOption,
 } from '../../../../shared/components/data-table/data-table.types';
 import { PqrsDetailComponent } from './pqrs-detail.component';
-import { PqrsFormComponent } from './pqrs-form.component';
 
-const STATUS_COLORS: Record<PqrsStatus, string> = {
-  PENDIENTE: '#f59e0b',
-  EN_PROCESO: '#3b82f6',
-  RESPONDIDO: '#10b981',
-  CERRADO: '#6b7280',
-  RECHAZADO: '#ef4444',
+const STATUS_MAP: Record<ComplaintStatus, { label: string; color: string }> = {
+  pending: { label: 'Pendiente', color: '#f59e0b' },
+  in_progress: { label: 'En Proceso', color: '#1daeff' },
+  resolved: { label: 'Resuelto', color: '#10b981' },
 };
 
-const TYPE_LABELS: Record<PqrsType, string> = {
-  QUEJA: 'Queja',
-  PETICION: 'Petición',
-  RECLAMO: 'Reclamo',
-  SUGERENCIA: 'Sugerencia',
+const TYPE_MAP: Record<ComplaintType, { label: string; color: string }> = {
+  petition: { label: 'Petición', color: '#0b63f6' },
+  complaint: { label: 'Queja', color: '#ef4444' },
+  claim: { label: 'Reclamo', color: '#f59e0b' },
+  suggestion: { label: 'Sugerencia', color: '#10b981' },
+  report: { label: 'Denuncia', color: '#8b5cf6' },
 };
 
 @Component({
@@ -79,7 +78,7 @@ export class PqrsListComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly pqrsList = signal<PQRS[]>([]);
+  protected readonly pqrsList = signal<Complaint[]>([]);
   protected readonly totalItems = signal(0);
   protected readonly loading = signal(false);
   protected readonly currentPage = signal(0);
@@ -92,16 +91,22 @@ export class PqrsListComponent implements OnInit {
   protected readonly dateFrom = signal<Date | null>(null);
   protected readonly dateTo = signal<Date | null>(null);
 
-  protected readonly statusList = Object.entries(STATUS_COLORS).map(([value, color]) => ({
-    value: value as PqrsStatus,
-    label: value.replace('_', ' '),
-    color,
+  protected readonly statusList = Object.entries(STATUS_MAP).map(([value, s]) => ({
+    value: value as ComplaintStatus,
+    label: s.label,
+    color: s.color,
   }));
 
-  protected readonly typeList = Object.entries(TYPE_LABELS).map(([value, label]) => ({
-    value: value as PqrsType,
-    label,
+  protected readonly typeList = Object.entries(TYPE_MAP).map(([value, t]) => ({
+    value: value as ComplaintType,
+    label: t.label,
   }));
+
+  protected readonly rowActions: RowActionOption[] = [
+    { action: 'respond', label: 'Responder', icon: 'reply' },
+    { action: 'view', label: 'Ver detalle', icon: 'visibility' },
+    { action: 'delete', label: 'Eliminar', icon: 'delete', danger: true },
+  ];
 
   protected readonly columns: TableColumn[] = [
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
@@ -112,15 +117,21 @@ export class PqrsListComponent implements OnInit {
       type: 'status',
       width: '120px',
       align: 'center',
+      statusMap: TYPE_MAP,
+    },
+    { key: 'reasonLabel', label: 'Motivo', sortable: true },
+    { key: 'userName', label: 'Usuario', sortable: true, width: '140px' },
+    {
+      key: 'awaitingReply',
+      label: 'Atención',
+      type: 'status',
+      width: '150px',
+      align: 'center',
       statusMap: {
-        QUEJA: { label: 'Queja', color: '#ef4444' },
-        PETICION: { label: 'Petición', color: '#3b82f6' },
-        RECLAMO: { label: 'Reclamo', color: '#f59e0b' },
-        SUGERENCIA: { label: 'Sugerencia', color: '#10b981' },
+        YES: { label: 'Por responder', color: '#ef4444' },
+        NO: { label: 'Al día', color: '#94a3b8' },
       },
     },
-    { key: 'subject', label: 'Asunto', sortable: true },
-    { key: 'userName', label: 'Usuario', sortable: true, width: '140px' },
     {
       key: 'status',
       label: 'Estado',
@@ -128,15 +139,8 @@ export class PqrsListComponent implements OnInit {
       type: 'status',
       width: '130px',
       align: 'center',
-      statusMap: {
-        PENDIENTE: { label: 'Pendiente', color: '#f59e0b' },
-        EN_PROCESO: { label: 'En Proceso', color: '#3b82f6' },
-        RESPONDIDO: { label: 'Respondido', color: '#10b981' },
-        CERRADO: { label: 'Cerrado', color: '#6b7280' },
-        RECHAZADO: { label: 'Rechazado', color: '#ef4444' },
-      },
+      statusMap: STATUS_MAP,
     },
-    { key: 'assignedToName', label: 'Asignado a', sortable: true, width: '140px' },
     { key: 'createdAt', label: 'Fecha', sortable: true, type: 'date', width: '120px', format: 'dd/MM/yyyy HH:mm' },
     { key: 'actions', label: 'Acciones', type: 'actions', width: '80px', align: 'center' },
   ];
@@ -243,11 +247,12 @@ export class PqrsListComponent implements OnInit {
     this.loadPqrs();
   }
 
-  protected onRowAction(event: RowAction<PQRS>): void {
+  protected onRowAction(event: RowAction<Complaint>): void {
     switch (event.action) {
-      case 'view':
-        this.openDetail(event.row);
+      case 'respond':
+        this.openDetail(event.row, true);
         break;
+      case 'view':
       case 'edit':
         this.openDetail(event.row);
         break;
@@ -257,19 +262,15 @@ export class PqrsListComponent implements OnInit {
     }
   }
 
-  protected onAdd(): void {
-    this.openFormDialog();
-  }
-
-  protected openDetail(pqrs: PQRS): void {
-    const dialogRef = this.dialog.open<PqrsDetailComponent, { pqrsId: number }, boolean>(
+  protected openDetail(pqrs: Complaint, focusReply = false): void {
+    const dialogRef = this.dialog.open<PqrsDetailComponent, { pqrsId: number; focusReply?: boolean }, boolean>(
       PqrsDetailComponent,
       {
         width: '800px',
         maxHeight: '90vh',
         disableClose: false,
         autoFocus: false,
-        data: { pqrsId: pqrs.id },
+        data: { pqrsId: pqrs.id, focusReply },
       },
     );
 
@@ -281,30 +282,11 @@ export class PqrsListComponent implements OnInit {
       });
   }
 
-  private openFormDialog(): void {
-    const dialogRef = this.dialog.open<PqrsFormComponent, Record<string, never>, boolean>(
-      PqrsFormComponent,
-      {
-        width: '520px',
-        disableClose: true,
-        autoFocus: false,
-        data: {},
-      },
-    );
-
-    dialogRef
-      .afterClosed()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((result) => {
-        if (result) this.loadPqrs();
-      });
-  }
-
-  private confirmDelete(pqrs: PQRS): void {
+  private confirmDelete(pqrs: Complaint): void {
     this.confirmDialog
       .confirm({
         title: 'Eliminar PQRS',
-        message: `¿Está seguro de eliminar el PQRS "${pqrs.subject}"? Esta acción no se puede deshacer.`,
+        message: `¿Está seguro de eliminar el PQRS "${pqrs.reasonLabel ?? pqrs.reason}"? Esta acción no se puede deshacer.`,
         confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         icon: 'delete',

@@ -12,7 +12,8 @@ interface NestResponse<T = unknown> {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService extends ApiBaseService {
-  private readonly endpoint = 'admin/dashboard';
+  // Dashboard del panel (token de admin): toda la plataforma.
+  private readonly endpoint = 'admin/panel-dashboard';
 
   getKpis(): Observable<any> {
     return this.http

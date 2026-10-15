@@ -49,15 +49,15 @@ const PQRS_STATUS_LABELS: Record<string, string> = {
 };
 
 const BLUE_COLORS = [
-  '#3b82f6',
-  '#2563eb',
-  '#1d4ed8',
-  '#1e40af',
+  '#1daeff',
+  '#009bff',
+  '#0078ff',
+  '#0078ff',
   '#1e3a5f',
 ];
 
 const ROLE_COLORS = [
-  '#3b82f6',
+  '#1daeff',
   '#22c55e',
   '#f59e0b',
   '#ef4444',

@@ -4,18 +4,22 @@
       <h1 class="page-title">Gestión de Departamentos</h1>
       <p class="page-subtitle">Listado de departamentos del sistema</p>
     </div>
+    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      <span>Nuevo Departamento</span>
+    </button>
   </div>
 
   <div class="filters-row">
     <mat-form-field appearance="outline" class="country-filter">
       <mat-label>Filtrar por País</mat-label>
       <mat-select
-        [value]="selectedCountryId()"
+        [value]="selectedCountryCode()"
         (selectionChange)="onCountryFilterChange($event.value)"
       >
         <mat-option [value]="null">Todos los países</mat-option>
-        @for (country of countries(); track country.id) {
-          <mat-option [value]="country.id">
+        @for (country of countries(); track country.countryCode) {
+          <mat-option [value]="country.countryCode">
             {{ country.countryName }}
           </mat-option>
         }

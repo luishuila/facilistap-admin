@@ -1,3 +1,6 @@
+import { AuthService } from '../../../../core/services/auth.service';
+/** Roles que solo el Super Admin puede asignar. */
+const RESTRICTED_ROLES = ['SUPER_ADMIN', 'PANEL_ADMIN'];
 import {
   Component,
   OnInit,
@@ -132,7 +135,7 @@ export interface UserChangeRoleDialogData {
         width: 48px;
         height: 48px;
         border-radius: 12px;
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        background: linear-gradient(135deg, #00b4ff, #0078ff);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -201,7 +204,7 @@ export interface UserChangeRoleDialogData {
 
       .system-badge {
         font-size: 11px;
-        color: #8b5cf6;
+        color: #009bff;
         font-weight: 500;
       }
 
@@ -233,6 +236,7 @@ export class UserChangeRoleComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly userService = inject(UserService);
   private readonly roleService = inject(RoleService);
+  private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -257,7 +261,8 @@ export class UserChangeRoleComponent implements OnInit {
       .getAll({ limit: 100 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => (this.roles = res.items),
+        // Super Admin y roles de personal del panel: solo los asigna el Super Admin.
+        next: (res) => (this.roles = res.items.filter((r) => this.authService.isSuperAdmin() || !RESTRICTED_ROLES.includes(String(r.role)))),
         error: () => {
           this.snackBar.open('Error al cargar roles', 'Cerrar', {
             duration: 5000,

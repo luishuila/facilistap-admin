@@ -4,10 +4,6 @@
       <h1 class="page-title">Gestión de PQRS</h1>
       <p class="page-subtitle">Administre las peticiones, quejas, reclamos y sugerencias</p>
     </div>
-    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
-      <mat-icon>add</mat-icon>
-      <span>Nuevo PQRS</span>
-    </button>
   </div>
 
   <div class="filters-bar">
@@ -65,10 +61,11 @@
     [pageSize]="pageSize()"
     [loading]="loading()"
     [showSearch]="true"
-    [searchPlaceholder]="'Buscar por asunto o usuario...'"
+    [searchPlaceholder]="'Buscar por motivo o usuario...'"
     [showExport]="false"
     [title]="''"
     [showAddButton]="false"
+    [rowActions]="rowActions"
     (sortChange)="onSortChange($event)"
     (pageChange)="onPageChange($event)"
     (searchChange)="onSearchChange($event)"
@@ -80,9 +77,6 @@
       icon="feedback"
       title="Sin PQRS"
       message="No se encontraron PQRS registrados"
-      [showAction]="true"
-      actionLabel="Crear PQRS"
-      (action)="onAdd()"
     />
   }
 </div>

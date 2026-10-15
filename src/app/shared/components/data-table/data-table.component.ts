@@ -26,7 +26,15 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
-import { TableColumn, SortEvent, PageEvent, RowAction, ExportEvent } from './data-table.types';
+import {
+  TableColumn,
+  SortEvent,
+  PageEvent,
+  RowAction,
+  ExportEvent,
+  RowActionOption,
+  DEFAULT_ROW_ACTIONS,
+} from './data-table.types';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 @Component({
@@ -157,29 +165,24 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
                       <mat-icon>more_vert</mat-icon>
                     </button>
                     <mat-menu #rowMenu="matMenu">
-                      <button mat-menu-item (click)="onRowAction('edit', row)">
-                        <mat-icon>edit</mat-icon>
-                        <span>Editar</span>
-                      </button>
-                      <button mat-menu-item (click)="onRowAction('view', row)">
-                        <mat-icon>visibility</mat-icon>
-                        <span>Ver</span>
-                      </button>
-                      <button mat-menu-item (click)="onRowAction('toggle', row)">
-                        <mat-icon>toggle_on</mat-icon>
-                        <span>Activar/Desactivar</span>
-                      </button>
-                      <mat-divider></mat-divider>
-                      <button mat-menu-item class="danger-action" (click)="onRowAction('delete', row)">
-                        <mat-icon color="warn">delete</mat-icon>
-                        <span>Eliminar</span>
-                      </button>
+                      @for (opt of rowActions; track opt.action) {
+                        @if (opt.danger) {
+                          <mat-divider></mat-divider>
+                        }
+                        <button mat-menu-item [class.danger-action]="opt.danger" (click)="onRowAction(opt.action, row)">
+                          <mat-icon [color]="opt.danger ? 'warn' : undefined">{{ opt.icon }}</mat-icon>
+                          <span>{{ opt.label }}</span>
+                        </button>
+                      }
                     </mat-menu>
                   </div>
                 } @else if (column.type === 'number') {
                   {{ row[column.key] != null ? (row[column.key] | number: (column.format || '1.0-0')) : '' }}
                 } @else {
                   {{ row[column.key] }}
+                  @if (column.subKey && row[column.subKey]) {
+                    <span class="cell-sub">{{ row[column.subKey] }}</span>
+                  }
                 }
               </td>
             </ng-container>
@@ -307,6 +310,12 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
           border-bottom: 2px solid #e2e8f0;
         }
 
+        .cell-sub {
+          display: block;
+          font-size: 12px;
+          color: #64748b;
+        }
+
         .mat-mdc-cell {
           padding: 14px 16px;
           font-size: 14px;
@@ -407,6 +416,8 @@ export class DataTableComponent<T> implements OnInit, OnChanges {
   @Input() title = '';
   @Input() showAddButton = true;
   @Input() addButtonLabel = 'Agregar';
+  /** Opciones del menu de cada fila; por defecto Editar / Ver / Activar-Desactivar / Eliminar. */
+  @Input() rowActions: RowActionOption[] = DEFAULT_ROW_ACTIONS;
 
   @Output() sortChange = new EventEmitter<SortEvent>();
   @Output() pageChange = new EventEmitter<PageEvent>();
@@ -515,10 +526,10 @@ export class DataTableComponent<T> implements OnInit, OnChanges {
       bloqueado: '#ef4444',
       pending: '#f59e0b',
       pendiente: '#f59e0b',
-      completed: '#3b82f6',
-      completado: '#3b82f6',
-      open: '#3b82f6',
-      abierto: '#3b82f6',
+      completed: '#1daeff',
+      completado: '#1daeff',
+      open: '#1daeff',
+      abierto: '#1daeff',
       closed: '#64748b',
       cerrado: '#64748b',
       in_progress: '#8b5cf6',

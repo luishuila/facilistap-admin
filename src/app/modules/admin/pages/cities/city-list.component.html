@@ -4,23 +4,54 @@
       <h1 class="page-title">Gestión de Ciudades</h1>
       <p class="page-subtitle">Listado de ciudades del sistema</p>
     </div>
+    <button mat-flat-button color="primary" class="add-btn" (click)="onAdd()">
+      <mat-icon>add</mat-icon>
+      <span>Nueva Ciudad</span>
+    </button>
   </div>
 
   <div class="filters-row">
-    <mat-form-field appearance="outline" class="state-filter">
-      <mat-label>Filtrar por Departamento</mat-label>
-      <mat-select
-        [value]="selectedStateCode()"
-        (selectionChange)="onStateCodeFilterChange($event.value)"
-      >
-        <mat-option [value]="null">Todos los departamentos</mat-option>
-        @for (code of stateCodes(); track code) {
-          <mat-option [value]="code">
-            {{ code }}
-          </mat-option>
+    <mat-form-field appearance="outline" class="geo-filter" subscriptSizing="dynamic">
+      <mat-label>País</mat-label>
+      <mat-select [value]="selectedCountryCode()" (selectionChange)="onCountryChange($event.value)">
+        <mat-option [value]="null">Todos los países</mat-option>
+        @for (country of countries(); track country.id) {
+          <mat-option [value]="country.countryCode">{{ country.countryName }} ({{ country.countryCode }})</mat-option>
         }
       </mat-select>
     </mat-form-field>
+
+    <mat-form-field appearance="outline" class="geo-filter" subscriptSizing="dynamic">
+      <mat-label>Departamento</mat-label>
+      <mat-select
+        [value]="selectedStateCode()"
+        [disabled]="!selectedCountryCode() || statesLoading()"
+        (selectionChange)="onStateCodeFilterChange($event.value)"
+      >
+        <mat-option [value]="null">Todos los departamentos</mat-option>
+        @for (state of states(); track state.id) {
+          <mat-option [value]="state.stateCode">{{ state.stateName }} ({{ state.stateCode }})</mat-option>
+        }
+      </mat-select>
+      @if (!selectedCountryCode()) {
+        <mat-hint>Elija primero un país</mat-hint>
+      }
+    </mat-form-field>
+
+    @if (selectedCountryCode() || selectedStateCode()) {
+      <button mat-stroked-button class="clear-btn" (click)="clearFilters()">
+        <mat-icon>clear_all</mat-icon>
+        Limpiar filtros
+      </button>
+    }
+
+    <div class="total-card">
+      <mat-icon>location_city</mat-icon>
+      <div class="total-texts">
+        <span class="total-number">{{ loading() ? '…' : (totalItems() | number) }}</span>
+        <span class="total-label">{{ totalLabel() }}</span>
+      </div>
+    </div>
   </div>
 
   <app-data-table

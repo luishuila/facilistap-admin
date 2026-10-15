@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { panelAccessGuard } from './core/guards/panel-access.guard';
 
 export const routes: Routes = [
   {
@@ -16,7 +16,7 @@ export const routes: Routes = [
     path: 'admin',
     loadComponent: () =>
       import('./shared/components/layout/main-layout.component').then((m) => m.MainLayoutComponent),
-    canActivate: [authGuard],
+    canActivate: [panelAccessGuard],
     children: [
       {
         path: '',

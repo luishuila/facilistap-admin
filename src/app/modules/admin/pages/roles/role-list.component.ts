@@ -79,7 +79,7 @@ import { RolePermissionsComponent } from './role-permissions.component';
       :host {
         display: block;
         padding: 24px;
-        background: #f1f5f9;
+        background: var(--fac-bg);
         min-height: 100%;
       }
 

@@ -26,6 +26,7 @@ import {
   SortEvent,
   PageEvent,
   RowAction,
+  RowActionOption,
 } from '../../../../shared/components/data-table/data-table.types';
 import { ProviderFormComponent } from './provider-form.component';
 
@@ -63,23 +64,23 @@ export class ProviderListComponent implements OnInit {
   protected readonly sortActive = signal('name');
   protected readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
+  /** Sin "Ver": el formulario de edición ya muestra todo. */
+  protected readonly rowActions: RowActionOption[] = [
+    { action: 'edit', label: 'Editar', icon: 'edit' },
+    { action: 'toggle', label: 'Activar / desactivar', icon: 'toggle_on' },
+    { action: 'delete', label: 'Eliminar', icon: 'delete', danger: true },
+  ];
+
   protected readonly columns: TableColumn[] = [
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
     { key: 'name', label: 'Nombre', sortable: true },
+    { key: 'ownerName', label: 'Dueño', subKey: 'ownerUsername' },
+    { key: 'username', label: 'Usuario', width: '140px' },
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Teléfono', width: '140px' },
-    { key: 'contactPerson', label: 'Contacto', width: '150px' },
     {
-      key: 'isActive',
-      label: 'Estado',
-      sortable: true,
-      type: 'status',
-      width: '110px',
-      align: 'center',
-      statusMap: {
-        true: { label: 'Activo', color: '#22c55e' },
-        false: { label: 'Inactivo', color: '#94a3b8' },
-      },
+      key: 'isActive', label: 'Estado', type: 'status', width: '110px', align: 'center',
+      statusMap: { true: { label: 'Activo', color: '#22c55e' }, false: { label: 'Inactivo', color: '#94a3b8' } },
     },
     {
       key: 'actions',
@@ -149,7 +150,7 @@ export class ProviderListComponent implements OnInit {
         this.openFormDialog(event.row);
         break;
       case 'toggle':
-        this.toggleProvider(event.row);
+        this.confirmToggle(event.row);
         break;
       case 'delete':
         this.confirmDelete(event.row);
@@ -183,25 +184,33 @@ export class ProviderListComponent implements OnInit {
       });
   }
 
-  private toggleProvider(provider: Provider): void {
-    this.providerService
-      .toggle(provider.id)
+  private confirmToggle(row: Provider): void {
+    const activate = !row.isActive;
+    this.confirmDialog
+      .confirm({
+        title: activate ? 'Activar proveedor' : 'Desactivar proveedor',
+        message: activate
+          ? `${row.name} volverá a estar disponible en la app.`
+          : `${row.name} dejará de aparecer en las búsquedas y el inicio de la app (sus datos no se borran). Podrá activarlo de nuevo cuando quiera.`,
+        confirmText: activate ? 'Activar' : 'Desactivar',
+        cancelText: 'Cancelar',
+        icon: activate ? 'toggle_on' : 'toggle_off',
+        color: activate ? '#22c55e' : '#ef4444',
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          const newStatus = !provider.isActive;
-          this.snackBar.open(
-            `Proveedor ${newStatus ? 'activado' : 'desactivado'} correctamente`,
-            'Cerrar',
-            { duration: 3000 }
-          );
-          this.loadProviders();
-        },
-        error: () => {
-          this.snackBar.open('Error al cambiar estado', 'Cerrar', {
-            duration: 5000,
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.providerService
+          .setActive(row.id, activate)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: () => {
+              this.snackBar.open(activate ? 'Proveedor activado' : 'Proveedor desactivado', 'Cerrar', { duration: 3000 });
+              this.loadProviders();
+            },
+            error: (err: Error) =>
+              this.snackBar.open(err?.message || 'No se pudo cambiar el estado', 'Cerrar', { duration: 5000 }),
           });
-        },
       });
   }
 

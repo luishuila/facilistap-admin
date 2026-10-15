@@ -1,4 +1,5 @@
 export interface UserRole {
+  id?: number;
   idRol: number;
   name: string;
   role: string;
@@ -13,6 +14,8 @@ export interface User {
   img: string;
   email?: string;
   phone?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  birth?: string;
   roles: UserRole[];
   fullName?: string;
   firstName?: string;

@@ -22,10 +22,12 @@ export class RoleService extends ApiBaseService {
   delete(id: number): Observable<ApiResponse<void>> {
     return this._delete<void>('roles', id);
   }
-  getPermissions(_roleId: number): Observable<ApiResponse<unknown[]>> {
-    return this.http.get<ApiResponse<unknown[]>>(`${this.baseUrl}/roles`);
+  getPermissions(roleId: number): Observable<ApiResponse<unknown[]>> {
+    return this.http.get<ApiResponse<unknown[]>>(`${this.baseUrl}/roles/${roleId}/permissions`);
   }
-  setPermissions(_roleId: number, _permissionIds: number[]): Observable<ApiResponse<void>> {
-    return this.http.put<ApiResponse<void>>(`${this.baseUrl}/roles`, {});
+  setPermissions(roleId: number, permissionIds: number[]): Observable<ApiResponse<unknown[]>> {
+    return this.http.put<ApiResponse<unknown[]>>(`${this.baseUrl}/roles/${roleId}/permissions`, {
+      permissionIds,
+    });
   }
 }

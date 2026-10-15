@@ -34,7 +34,7 @@ import { AuditDetailComponent } from './audit-detail.component';
 
 const ACTION_COLORS: Record<string, string> = {
   CREATE: '#22c55e',
-  UPDATE: '#3b82f6',
+  UPDATE: '#1daeff',
   DELETE: '#ef4444',
   LOGIN: '#a855f7',
   LOGOUT: '#94a3b8',
@@ -117,8 +117,6 @@ function buildActionStatusMap(): Record<string, { label: string; color: string }
               <mat-option value="CREATE">Creación</mat-option>
               <mat-option value="UPDATE">Actualización</mat-option>
               <mat-option value="DELETE">Eliminación</mat-option>
-              <mat-option value="LOGIN">Inicio Sesión</mat-option>
-              <mat-option value="LOGOUT">Cierre Sesión</mat-option>
               <mat-option value="BLOCK">Bloqueo</mat-option>
               <mat-option value="UNBLOCK">Desbloqueo</mat-option>
               <mat-option value="PERMISSION_CHANGE">Cambio Permiso</mat-option>
@@ -433,7 +431,7 @@ export class AuditListComponent implements OnInit {
           const url = window.URL.createObjectURL(blob);
           const anchor = document.createElement('a');
           anchor.href = url;
-          anchor.download = `auditoria_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          anchor.download = `auditoria_${new Date().toISOString().slice(0, 10)}.csv`;
           anchor.click();
           window.URL.revokeObjectURL(url);
           this.snackBar.open('Exportación completada', 'Cerrar', { duration: 3000 });

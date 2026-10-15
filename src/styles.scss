@@ -1,5 +1,23 @@
 @use '@angular/material' as mat;
 
+/* Colores de marca: los mismos de facilis-tap-frontend (src/global.scss, theme/variables). */
+:root {
+  --fac-primary: #1daeff;
+  --fac-primary-rgb: 29, 174, 255;
+  --fac-primary-shade: #009bff;
+  --fac-primary-deep: #0078ff;
+  --fac-gradient-start: #00b4ff;
+  --fac-gradient-end: #0078ff;
+  --fac-gradient: linear-gradient(135deg, var(--fac-gradient-start), var(--fac-gradient-end));
+  --fac-primary-soft: #e8f7ff;
+  --fac-bg: #f4f4f8;
+  --fac-surface: #ffffff;
+  --fac-text: #222222;
+  --fac-text-muted: #6b6b6b;
+  --fac-border: #ececf1;
+  --fac-radius: 12px;
+}
+
 html,
 body {
   height: 100%;
@@ -8,8 +26,8 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Helvetica, Arial, sans-serif;
   font-size: 14px;
-  color: #1e293b;
-  background-color: #f1f5f9;
+  color: var(--fac-text);
+  background-color: var(--fac-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -107,8 +125,42 @@ a {
   color: #3b82f6;
 }
 
-$primary-palette: mat.m2-define-palette(mat.$m2-blue-palette, 600);
-$accent-palette: mat.m2-define-palette(mat.$m2-indigo-palette, 500);
+// Paleta Material construida sobre el azul de Facilista (#1DAEFF, sombra #009BFF, profundo #0078FF).
+$fac-blue-palette: (
+  50: #e8f7ff,
+  100: #c5ebff,
+  200: #9fdeff,
+  300: #73cfff,
+  400: #48c0ff,
+  500: #1daeff,
+  600: #009bff,
+  700: #0089ff,
+  800: #0078ff,
+  900: #005fd6,
+  A100: #c5ebff,
+  A200: #48c0ff,
+  A400: #009bff,
+  A700: #0078ff,
+  contrast: (
+    50: rgba(0, 0, 0, 0.87),
+    100: rgba(0, 0, 0, 0.87),
+    200: rgba(0, 0, 0, 0.87),
+    300: rgba(0, 0, 0, 0.87),
+    400: #ffffff,
+    500: #ffffff,
+    600: #ffffff,
+    700: #ffffff,
+    800: #ffffff,
+    900: #ffffff,
+    A100: rgba(0, 0, 0, 0.87),
+    A200: #ffffff,
+    A400: #ffffff,
+    A700: #ffffff,
+  ),
+);
+
+$primary-palette: mat.m2-define-palette($fac-blue-palette, 500, 300, 800);
+$accent-palette: mat.m2-define-palette($fac-blue-palette, 800, 500, 900);
 $warn-palette: mat.m2-define-palette(mat.$m2-red-palette);
 
 $theme: mat.m2-define-light-theme(
@@ -118,7 +170,7 @@ $theme: mat.m2-define-light-theme(
       accent: $accent-palette,
       warn: $warn-palette,
     ),
-    typography: mat.m2-define-typography-config(),
+    typography: mat.m2-define-typography-config($font-family: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"),
     density: 0,
   )
 );
@@ -144,4 +196,29 @@ $theme: mat.m2-define-light-theme(
     --mat-mdc-snack-bar-button-color: #ffffff;
     --mdc-snackbar-supporting-text-color: #ffffff;
   }
+}
+
+/* Botones y tarjetas con el radio y el azul de la app. */
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-raised-button.mat-primary {
+  border-radius: var(--fac-radius) !important;
+}
+
+.mat-mdc-card {
+  border-radius: var(--fac-radius) !important;
+}
+
+.mat-mdc-dialog-surface {
+  border-radius: 18px !important;
+  /* Formularios largos: la ventana no pasa del alto de la pantalla y tiene su propio scroll. */
+  max-height: 92vh;
+  overflow-y: auto !important;
+}
+
+.cdk-overlay-pane.mat-mdc-dialog-panel {
+  max-height: 92vh;
+}
+
+.mat-mdc-tab-group .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+  color: var(--fac-primary-deep);
 }

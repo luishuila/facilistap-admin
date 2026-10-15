@@ -203,7 +203,7 @@ export class PermissionFormComponent implements OnInit {
   protected actionColor(action: string): string {
     const colors: Record<string, string> = {
       CREATE: '#22c55e',
-      READ: '#3b82f6',
+      READ: '#1daeff',
       UPDATE: '#f59e0b',
       DELETE: '#ef4444',
     };

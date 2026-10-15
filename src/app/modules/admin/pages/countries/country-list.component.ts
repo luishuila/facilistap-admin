@@ -11,6 +11,9 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
@@ -18,6 +21,7 @@ import { EmptyStateComponent } from '../../../../shared/components/empty-state/e
 import { CountryService } from '../../services/country.service';
 import { Country } from '../../../../core/models/country.interface';
 import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared/components/data-table/data-table.types';
+import { CountryFormComponent } from './country-form.component';
 
 @Component({
   selector: 'app-country-list',
@@ -27,6 +31,9 @@ import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared
     ReactiveFormsModule,
     RouterModule,
     MatSnackBarModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
     DataTableComponent,
     EmptyStateComponent,
   ],
@@ -36,6 +43,7 @@ import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared
 })
 export class CountryListComponent implements OnInit {
   private readonly countryService = inject(CountryService);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -52,6 +60,7 @@ export class CountryListComponent implements OnInit {
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
     { key: 'countryCode', label: 'Código', sortable: true, width: '100px' },
     { key: 'countryName', label: 'País', sortable: true },
+    { key: 'translations', label: 'Idiomas', width: '150px' },
     { key: 'countryContinent', label: 'Continente', sortable: true },
     {
       key: 'status',
@@ -120,12 +129,43 @@ export class CountryListComponent implements OnInit {
   }
 
   protected onRowAction(event: RowAction<Country>): void {
-    if (event.action === 'view') {
-      this.snackBar.open(
-        `País: ${event.row.countryName} (${event.row.countryCode}) - Continente: ${event.row.countryContinent}`,
-        'Cerrar',
-        { duration: 5000 }
-      );
+    switch (event.action) {
+      case 'edit':
+        this.openFormDialog(event.row);
+        break;
+      case 'view':
+        this.snackBar.open(
+          `País: ${event.row.countryName} (${event.row.countryCode}) - Continente: ${event.row.countryContinent}`,
+          'Cerrar',
+          { duration: 5000 }
+        );
+        break;
     }
+  }
+
+  protected onAdd(): void {
+    this.openFormDialog();
+  }
+
+  private openFormDialog(country?: Country): void {
+    const dialogRef = this.dialog.open<CountryFormComponent, { country?: Country }, boolean>(
+      CountryFormComponent,
+      {
+        width: '720px',
+        maxWidth: '95vw',
+        disableClose: true,
+        autoFocus: false,
+        data: { country },
+      },
+    );
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result) {
+          this.loadCountries();
+        }
+      });
   }
 }

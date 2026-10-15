@@ -19,7 +19,7 @@ import { StatusBadgeComponent } from '../../../../shared/components/status-badge
 
 const ACTION_COLORS: Record<string, string> = {
   CREATE: '#22c55e',
-  UPDATE: '#3b82f6',
+  UPDATE: '#1daeff',
   DELETE: '#ef4444',
   LOGIN: '#a855f7',
   LOGOUT: '#94a3b8',
@@ -333,7 +333,7 @@ export class AuditDetailComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.audit.set(res.data);
+          this.audit.set(res.data ?? null);
           this.loading.set(false);
         },
         error: () => {

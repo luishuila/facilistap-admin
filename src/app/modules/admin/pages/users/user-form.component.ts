@@ -1,3 +1,6 @@
+import { AuthService } from '../../../../core/services/auth.service';
+/** Roles que solo el Super Admin puede asignar. */
+const RESTRICTED_ROLES = ['SUPER_ADMIN', 'PANEL_ADMIN'];
 import {
   Component,
   OnInit,
@@ -66,6 +69,30 @@ export interface UserFormDialogData {
       </div>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-body">
+        <div class="form-row two-cols">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="name" placeholder="Ej: Juan" autocomplete="off" />
+            <mat-icon matPrefix>badge</mat-icon>
+            @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+              <mat-error>El nombre es requerido</mat-error>
+            }
+            @if (form.get('name')?.hasError('minlength')) {
+              <mat-error>Mínimo 3 caracteres</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Apellido</mat-label>
+            <input matInput formControlName="lastname" placeholder="Ej: Pérez" autocomplete="off" />
+            @if (form.get('lastname')?.hasError('required') && form.get('lastname')?.touched) {
+              <mat-error>El apellido es requerido</mat-error>
+            }
+            @if (form.get('lastname')?.hasError('minlength')) {
+              <mat-error>Mínimo 5 caracteres</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
         <div class="form-row">
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>Nombre de usuario</mat-label>
@@ -75,7 +102,7 @@ export interface UserFormDialogData {
               <mat-error>El nombre de usuario es requerido</mat-error>
             }
             @if (form.get('username')?.hasError('minlength')) {
-              <mat-error>Mínimo 3 caracteres</mat-error>
+              <mat-error>Mínimo 4 caracteres</mat-error>
             }
           </mat-form-field>
         </div>
@@ -107,7 +134,10 @@ export interface UserFormDialogData {
                 <mat-error>La contraseña es requerida</mat-error>
               }
               @if (form.get('password')?.hasError('minlength')) {
-                <mat-error>Mínimo 6 caracteres</mat-error>
+                <mat-error>Mínimo 8 caracteres</mat-error>
+              }
+              @if (form.get('password')?.hasError('pattern')) {
+                <mat-error>Debe incluir al menos una mayúscula y una minúscula</mat-error>
               }
             </mat-form-field>
           </div>
@@ -115,27 +145,24 @@ export interface UserFormDialogData {
 
         <div class="form-row two-cols">
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Nombre</mat-label>
-            <input matInput formControlName="firstName" placeholder="Ej: Juan" autocomplete="off" />
-            <mat-icon matPrefix>badge</mat-icon>
-            @if (form.get('firstName')?.hasError('required') && form.get('firstName')?.touched) {
-              <mat-error>El nombre es requerido</mat-error>
+            <mat-label>Género</mat-label>
+            <mat-select formControlName="gender">
+              <mat-option value="MALE">Masculino</mat-option>
+              <mat-option value="FEMALE">Femenino</mat-option>
+              <mat-option value="OTHER">Otro</mat-option>
+            </mat-select>
+            <mat-icon matPrefix>wc</mat-icon>
+            @if (form.get('gender')?.hasError('required') && form.get('gender')?.touched) {
+              <mat-error>El género es requerido</mat-error>
             }
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Apellido</mat-label>
-            <input matInput formControlName="lastName" placeholder="Ej: Pérez" autocomplete="off" />
-            @if (form.get('lastName')?.hasError('required') && form.get('lastName')?.touched) {
-              <mat-error>El apellido es requerido</mat-error>
+            <mat-label>Fecha de nacimiento</mat-label>
+            <input matInput type="date" formControlName="birth" />
+            <mat-icon matPrefix>cake</mat-icon>
+            @if (form.get('birth')?.hasError('required') && form.get('birth')?.touched) {
+              <mat-error>La fecha de nacimiento es requerida</mat-error>
             }
-          </mat-form-field>
-        </div>
-
-        <div class="form-row">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Teléfono</mat-label>
-            <input matInput formControlName="phone" placeholder="Ej: +591 12345678" autocomplete="off" />
-            <mat-icon matPrefix>phone</mat-icon>
           </mat-form-field>
         </div>
 
@@ -198,7 +225,7 @@ export interface UserFormDialogData {
         width: 48px;
         height: 48px;
         border-radius: 12px;
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        background: linear-gradient(135deg, #00b4ff, #0078ff);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -283,6 +310,7 @@ export class UserFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly userService = inject(UserService);
   private readonly roleService = inject(RoleService);
+  private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -304,20 +332,30 @@ export class UserFormComponent implements OnInit {
   private buildForm(): void {
     const user = this.data.user;
     this.form = this.fb.group({
-      username: [user?.username || '', [Validators.required, Validators.minLength(3)]],
+      name: [user?.name || '', [Validators.required, Validators.minLength(3)]],
+      lastname: [user?.lastname || '', [Validators.required, Validators.minLength(5)]],
+      username: [user?.username || '', [Validators.required, Validators.minLength(4)]],
       email: [user?.email || '', [Validators.required, Validators.email]],
-      firstName: [user?.firstName || '', Validators.required],
-      lastName: [user?.lastName || '', Validators.required],
-      phone: [user?.phone || ''],
-      roleId: [user?.roleId || null, Validators.required],
+      gender: [user?.gender || '', Validators.required],
+      birth: [this.toDateInput(user?.birth), Validators.required],
+      roleId: [user?.roleId ?? null, Validators.required],
     });
 
     if (this.data.mode === 'create') {
       this.form.addControl(
         'password',
-        this.fb.control('', [Validators.required, Validators.minLength(6)])
+        this.fb.control('', [
+          Validators.required,
+          Validators.minLength(8),
+          Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z]).+$/),
+        ])
       );
     }
+  }
+
+  private toDateInput(value?: string): string {
+    if (!value) return '';
+    return value.length >= 10 ? value.slice(0, 10) : value;
   }
 
   private loadRoles(): void {
@@ -325,7 +363,8 @@ export class UserFormComponent implements OnInit {
       .getAll({ limit: 100 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => (this.roles = res.items),
+        // Super Admin y roles de personal del panel: solo los asigna el Super Admin.
+        next: (res) => (this.roles = res.items.filter((r) => this.authService.isSuperAdmin() || !RESTRICTED_ROLES.includes(String(r.role)))),
         error: () => {
           this.snackBar.open('Error al cargar roles', 'Cerrar', {
             duration: 5000,
@@ -342,14 +381,17 @@ export class UserFormComponent implements OnInit {
     const formValue = this.form.value;
 
     if (this.data.mode === 'create') {
+      // CreateUserDto: name/lastname/email/gender/birth obligatorios; el rol se
+      // asigna en la relación muchos-a-muchos `roles`.
       const payload = {
+        name: formValue.name,
+        lastname: formValue.lastname,
         username: formValue.username,
         email: formValue.email,
         password: formValue.password,
-        firstName: formValue.firstName,
-        lastName: formValue.lastName,
-        phone: formValue.phone || null,
-        roleId: formValue.roleId,
+        gender: formValue.gender,
+        birth: formValue.birth,
+        roles: [{ id: formValue.roleId }],
       };
       this.userService
         .create(payload)
@@ -372,13 +414,14 @@ export class UserFormComponent implements OnInit {
           },
         });
     } else {
+      // UserDtoUpdate: name/lastname/username/email obligatorios; gender/birth opcionales.
       const payload = {
+        name: formValue.name,
+        lastname: formValue.lastname,
         username: formValue.username,
         email: formValue.email,
-        firstName: formValue.firstName,
-        lastName: formValue.lastName,
-        phone: formValue.phone || null,
-        roleId: formValue.roleId,
+        gender: formValue.gender,
+        birth: formValue.birth,
       };
       this.userService
         .update(this.data.user!.id, payload)

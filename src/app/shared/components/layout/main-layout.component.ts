@@ -1,5 +1,6 @@
-import { Component, ViewChild, OnInit, inject, signal, computed } from '@angular/core';
-import { RouterModule, Router } from '@angular/router';
+import { Component, ViewChild, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { MatSidenavModule, MatSidenav } from '@angular/material/sidenav';
@@ -12,8 +13,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { AuthService } from '../../../core/services/auth.service';
-import { User } from '../../../core/models/user.interface';
+import { AdminProfile, AuthService, PanelAccess } from '../../../core/services/auth.service';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ChangePasswordDialogComponent } from '../change-password-dialog/change-password-dialog.component';
+
+/** Cada cuanto se revisa que la sesion siga valida (IP, sesion cerrada, permisos). */
+const ACCESS_CHECK_MS = 60_000;
 
 interface NavItem {
   label: string;
@@ -21,6 +26,10 @@ interface NavItem {
   route: string;
   children?: NavItem[];
   roles?: string[];
+  /** Modulo del panel que exige (sin modulo = visible para todos, p. ej. Dashboard). */
+  module?: string;
+  /** Solo para el Super Admin (p. ej. Administrativos). */
+  superAdminOnly?: boolean;
 }
 
 @Component({
@@ -39,6 +48,7 @@ interface NavItem {
     MatTooltipModule,
     MatBadgeModule,
     MatSnackBarModule,
+    MatDialogModule,
   ],
   template: `
     <mat-sidenav-container class="layout-container" [class.is-mobile]="isMobile()">
@@ -51,9 +61,14 @@ interface NavItem {
       >
         <div class="sidebar-header">
           <div class="brand" [class.collapsed]="sidebarCollapsed()">
-            <mat-icon class="brand-icon">admin_panel_settings</mat-icon>
+            <div class="brand-logo">
+              <img src="logo-white.png" alt="FacilisTap" />
+            </div>
             @if (!sidebarCollapsed()) {
-              <span class="brand-text">FacilisTap Admin</span>
+              <div class="brand-texts">
+                <span class="brand-text">FacilisTap</span>
+                <span class="brand-sub">Panel administrativo</span>
+              </div>
             }
           </div>
         </div>
@@ -67,7 +82,7 @@ interface NavItem {
           @if (!sidebarCollapsed()) {
             <div class="user-details">
               <span class="user-name">{{ (currentUser()?.name ?? '') + ' ' + (currentUser()?.lastname ?? '') }}</span>
-              <span class="user-role">{{ currentUser()?.roles?.[0]?.name ?? 'Sin rol' }}</span>
+              <span class="user-role">{{ roleLabel() }}</span>
             </div>
           }
         </div>
@@ -76,7 +91,7 @@ interface NavItem {
 
         <nav class="sidebar-nav">
           <mat-nav-list>
-            @for (item of navItems; track item.route) {
+            @for (item of visibleNavItems(); track item.route) {
               @if (!item.children || item.children.length === 0) {
                 <a
                   mat-list-item
@@ -92,23 +107,32 @@ interface NavItem {
                     <span matListItemTitle>{{ item.label }}</span>
                   }
                 </a>
+              } @else if (sidebarCollapsed()) {
+                <!-- Menu colapsado: solo iconos, sin encabezados de grupo. -->
+                @for (child of item.children; track child.route) {
+                  <a
+                    mat-list-item
+                    [routerLink]="[child.route]"
+                    routerLinkActive="active"
+                    class="nav-item"
+                    [matTooltip]="item.label + ' / ' + child.label"
+                    [matTooltipPosition]="'right'"
+                  >
+                    <mat-icon matListItemIcon>{{ child.icon }}</mat-icon>
+                  </a>
+                }
               } @else {
                 <mat-list-item
                   (click)="toggleSubmenu(item)"
                   class="nav-item has-children"
                   [class.expanded]="isSubmenuExpanded(item)"
+                  [class.group-active]="groupHasActive(item)"
                 >
                   <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-                  @if (!sidebarCollapsed()) {
-                    <span matListItemTitle>{{ item.label }}</span>
-                  }
-                  @if (!sidebarCollapsed()) {
-                    <mat-icon class="expand-icon">
-                      {{ isSubmenuExpanded(item) ? 'expand_less' : 'expand_more' }}
-                    </mat-icon>
-                  }
+                  <span matListItemTitle>{{ item.label }}</span>
+                  <span matListItemMeta class="expand-slot"><mat-icon class="expand-icon">expand_more</mat-icon></span>
                 </mat-list-item>
-                @if (isSubmenuExpanded(item) && !sidebarCollapsed()) {
+                @if (isSubmenuExpanded(item)) {
                   @for (child of item.children; track child.route) {
                     <a
                       mat-list-item
@@ -166,12 +190,12 @@ interface NavItem {
             <mat-menu #userMenu="matMenu" xPosition="before">
               <div class="user-menu-header">
                 <span class="user-menu-name">{{ currentUser()?.name ?? 'Usuario' }}</span>
-                <span class="user-menu-email">{{ currentUser()?.username ?? '' }}</span>
+                <span class="user-menu-email">{{ currentUser()?.email ?? '' }}</span>
               </div>
               <mat-divider></mat-divider>
-              <button mat-menu-item (click)="navigateToProfile()">
-                <mat-icon>person</mat-icon>
-                <span>Perfil</span>
+              <button mat-menu-item (click)="openChangePassword()">
+                <mat-icon>lock_reset</mat-icon>
+                <span>Cambiar contraseña</span>
               </button>
               <button mat-menu-item (click)="logout()">
                 <mat-icon>logout</mat-icon>
@@ -196,23 +220,24 @@ interface NavItem {
       :host {
         --sidebar-width: 280px;
         --sidebar-collapsed-width: 72px;
-        --sidebar-bg: #1e293b;
-        --sidebar-hover-bg: #334155;
-        --sidebar-active-bg: rgba(59, 130, 246, 0.15);
-        --sidebar-active-border: #3b82f6;
-        --sidebar-text: #cbd5e1;
-        --sidebar-text-hover: #f1f5f9;
-        --sidebar-icon: #94a3b8;
-        --sidebar-icon-active: #3b82f6;
+        /* Mismo estilo claro de la app Facilista: fondo blanco y azul de marca. */
+        --sidebar-bg: var(--fac-surface);
+        --sidebar-hover-bg: #f4f4f8;
+        --sidebar-active-bg: var(--fac-primary-soft);
+        --sidebar-active-border: var(--fac-primary);
+        --sidebar-text: #4a4a4a;
+        --sidebar-text-hover: var(--fac-text);
+        --sidebar-icon: #8a8f98;
+        --sidebar-icon-active: var(--fac-primary-shade);
         --header-height: 64px;
-        --header-bg: #ffffff;
-        --header-border: #e2e8f0;
-        --content-bg: #f1f5f9;
+        --header-bg: var(--fac-surface);
+        --header-border: var(--fac-border);
+        --content-bg: var(--fac-bg);
         --footer-height: 48px;
-        --footer-bg: #ffffff;
-        --footer-border: #e2e8f0;
-        --accent-color: #3b82f6;
-        --accent-light: rgba(59, 130, 246, 0.1);
+        --footer-bg: var(--fac-surface);
+        --footer-border: var(--fac-border);
+        --accent-color: var(--fac-primary-shade);
+        --accent-light: rgba(var(--fac-primary-rgb), 0.1);
         --transition-speed: 0.25s;
         display: block;
         height: 100%;
@@ -237,8 +262,8 @@ interface NavItem {
         flex-direction: column;
         transition: width var(--transition-speed) ease;
         overflow-x: hidden;
-        border-right: none;
-        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+        border-right: 1px solid var(--fac-border);
+        box-shadow: none;
 
         &.collapsed {
           width: var(--sidebar-collapsed-width);
@@ -270,19 +295,39 @@ interface NavItem {
         }
       }
 
-      .brand-icon {
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
-        color: var(--accent-color);
+      .brand-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--fac-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
+        box-shadow: 0 6px 14px rgba(var(--fac-primary-rgb), 0.35);
+
+        img {
+          width: 34px;
+          height: 34px;
+          object-fit: contain;
+        }
+      }
+
+      .brand-texts {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
       }
 
       .brand-text {
         font-size: 18px;
         font-weight: 700;
-        color: var(--sidebar-text-hover);
-        letter-spacing: 0.5px;
+        color: var(--fac-text);
+      }
+
+      .brand-sub {
+        font-size: 12px;
+        color: var(--fac-text-muted);
       }
 
       .user-info {
@@ -300,7 +345,7 @@ interface NavItem {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        background: var(--fac-gradient);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -347,7 +392,7 @@ interface NavItem {
         }
 
         &::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(15, 23, 42, 0.12);
           border-radius: 2px;
         }
       }
@@ -382,8 +427,9 @@ interface NavItem {
 
         &.active {
           background: var(--sidebar-active-bg);
-          color: var(--accent-color) !important;
+          color: var(--fac-primary-deep) !important;
           border-left-color: var(--sidebar-active-border);
+          font-weight: 600;
 
           .mat-icon {
             color: var(--sidebar-icon-active);
@@ -412,10 +458,28 @@ interface NavItem {
       .has-children {
         cursor: pointer;
 
+        .expand-slot {
+          display: flex;
+          align-items: center;
+        }
+
         .expand-icon {
-          margin-left: auto;
           font-size: 20px;
           transition: transform 0.2s ease;
+        }
+
+        &.expanded .expand-icon {
+          transform: rotate(180deg);
+        }
+
+        /* El grupo de la pagina abierta se marca aunque este cerrado. */
+        &.group-active {
+          color: var(--fac-primary-deep) !important;
+          font-weight: 600;
+
+          .mat-icon {
+            color: var(--sidebar-icon-active);
+          }
         }
       }
 
@@ -466,13 +530,13 @@ interface NavItem {
       }
 
       .menu-toggle {
-        color: #64748b;
+        color: var(--fac-primary-shade);
       }
 
       .page-title {
         font-size: 20px;
         font-weight: 600;
-        color: #1e293b;
+        color: var(--fac-text);
         margin: 0;
         white-space: nowrap;
         overflow: hidden;
@@ -493,7 +557,7 @@ interface NavItem {
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        background: var(--fac-gradient);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -517,12 +581,12 @@ interface NavItem {
         .user-menu-name {
           font-weight: 600;
           font-size: 14px;
-          color: #1e293b;
+          color: var(--fac-text);
         }
 
         .user-menu-email {
           font-size: 12px;
-          color: #64748b;
+          color: var(--fac-text-muted);
         }
       }
 
@@ -540,13 +604,13 @@ interface NavItem {
         align-items: center;
         justify-content: center;
         font-size: 13px;
-        color: #64748b;
+        color: var(--fac-text-muted);
         padding: 0 24px;
       }
 
       ::ng-deep {
-        .mat-divider {
-          border-top-color: rgba(255, 255, 255, 0.08);
+        .sidebar .mat-divider {
+          border-top-color: var(--fac-border);
         }
 
         .mat-mdc-list-item-title {
@@ -564,31 +628,103 @@ export class MainLayoutComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
-  protected readonly currentUser = signal<User | null>(null);
+  protected readonly currentUser = signal<AdminProfile | null>(null);
+  /** Permisos del panel del usuario (SUPER_ADMIN ve todo). */
+  protected readonly access = signal<PanelAccess | null>(null);
   protected readonly isMobile = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly sidebarCollapsed = signal(false);
   protected readonly pageTitle = signal('Dashboard');
   protected readonly notificationsCount = signal(0);
   protected readonly expandedSubmenus = signal<Set<string>>(new Set());
   protected readonly currentYear = new Date().getFullYear();
 
+  /** Menu en acordeon: un solo grupo abierto; se abre solo el de la pagina actual. */
   protected readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/admin/dashboard' },
-    { label: 'Gestión de Usuarios', icon: 'people', route: '/admin/usuarios' },
-    { label: 'Gestión de Roles', icon: 'admin_panel_settings', route: '/admin/roles' },
-    { label: 'Gestión de Permisos', icon: 'security', route: '/admin/permisos' },
-    { label: 'Gestión de Categorías', icon: 'category', route: '/admin/categorias' },
-    { label: 'Gestión de Subcategorías', icon: 'subdirectory_arrow_right', route: '/admin/subcategorias' },
-    { label: 'Países', icon: 'public', route: '/admin/paises' },
-    { label: 'Departamentos', icon: 'map', route: '/admin/departamentos' },
-    { label: 'Ciudades', icon: 'location_city', route: '/admin/ciudades' },
-    { label: 'Gestión de Empleados', icon: 'badge', route: '/admin/empleados' },
-    { label: 'Gestión de Proveedores', icon: 'local_shipping', route: '/admin/proveedores' },
-    { label: 'Gestión de PQRS', icon: 'feedback', route: '/admin/pqrs' },
-    { label: 'Auditoría', icon: 'history', route: '/admin/auditoria' },
-    { label: 'Configuración', icon: 'settings', route: '/admin/configuracion' },
+    {
+      label: 'Usuarios y accesos', icon: 'people', route: 'group:users',
+      children: [
+        { label: 'Usuarios', icon: 'person', route: '/admin/usuarios', module: 'users' },
+        { label: 'Roles', icon: 'admin_panel_settings', route: '/admin/roles', module: 'roles' },
+        { label: 'Permisos', icon: 'security', route: '/admin/permisos', module: 'permissions' },
+      ],
+    },
+    {
+      label: 'Catálogo', icon: 'category', route: 'group:catalog',
+      children: [
+        { label: 'Categorías', icon: 'category', route: '/admin/categorias', module: 'categories' },
+        { label: 'Subcategorías', icon: 'subdirectory_arrow_right', route: '/admin/subcategorias', module: 'subcategories' },
+      ],
+    },
+    {
+      label: 'Ubicaciones', icon: 'public', route: 'group:geo',
+      children: [
+        { label: 'Países', icon: 'flag', route: '/admin/paises', module: 'countries' },
+        { label: 'Departamentos', icon: 'map', route: '/admin/departamentos', module: 'states' },
+        { label: 'Ciudades', icon: 'location_city', route: '/admin/ciudades', module: 'cities' },
+      ],
+    },
+    {
+      label: 'Negocio', icon: 'storefront', route: 'group:business',
+      children: [
+        { label: 'Proveedores', icon: 'local_shipping', route: '/admin/proveedores', module: 'providers' },
+        { label: 'Empleados', icon: 'badge', route: '/admin/empleados', module: 'employees' },
+        { label: 'Roles de empleados', icon: 'assignment_ind', route: '/admin/roles-empleados', module: 'employee_roles' },
+        { label: 'Suscripciones', icon: 'workspace_premium', route: '/admin/suscripciones', module: 'subscriptions' },
+        { label: 'Tienda y liquidaciones', icon: 'storefront', route: '/admin/tienda', module: 'store' },
+      ],
+    },
+    {
+      label: 'Atención', icon: 'support_agent', route: 'group:support',
+      children: [
+        { label: 'PQRS', icon: 'feedback', route: '/admin/pqrs', module: 'pqrs' },
+        { label: 'Verificaciones', icon: 'verified', route: '/admin/verificaciones', module: 'verifications' },
+        { label: 'Notificaciones', icon: 'campaign', route: '/admin/notificaciones', module: 'notifications' },
+      ],
+    },
+    {
+      label: 'Seguridad', icon: 'shield', route: 'group:security',
+      children: [
+        { label: 'Administrativos', icon: 'manage_accounts', route: '/admin/administrativos', superAdminOnly: true },
+        { label: 'IPs permitidas', icon: 'vpn_lock', route: '/admin/ips-permitidas', superAdminOnly: true },
+        { label: 'Auditoría', icon: 'history', route: '/admin/auditoria', module: 'audit' },
+      ],
+    },
+    {
+      label: 'Sistema', icon: 'tune', route: 'group:system',
+      children: [
+        { label: 'Idiomas', icon: 'translate', route: '/admin/idiomas', module: 'languages' },
+        { label: 'Menú de la app', icon: 'menu_open', route: '/admin/menu-app', module: 'menu' },
+        { label: 'Tabla maestra', icon: 'table_chart', route: '/admin/tabla-maestra', module: 'maestra' },
+        { label: 'Configuración', icon: 'settings', route: '/admin/configuracion', module: 'settings' },
+      ],
+    },
   ];
+
+  /** Menu segun los modulos permitidos. */
+  protected readonly visibleNavItems = computed(() => {
+    this.access();
+    const allowed = (item: NavItem) =>
+      item.superAdminOnly ? this.authService.isSuperAdmin() : this.authService.canAccess(item.module);
+    // Grupos: solo con sus opciones permitidas; un grupo sin opciones no se muestra.
+    return this.navItems
+      .map((item) => (item.children ? { ...item, children: item.children.filter(allowed) } : item))
+      .filter((item) => (item.children ? item.children.length > 0 : allowed(item)));
+  });
+
+  /** Ruta actual (sin query) para marcar el grupo que contiene la pagina abierta. */
+  private readonly currentPath = signal('');
+
+  protected groupHasActive(item: NavItem): boolean {
+    const path = this.currentPath();
+    return !!item.children?.some((c) => path === c.route || path.startsWith(`${c.route}/`));
+  }
+
+  /** Tipo de cuenta del panel. */
+  protected readonly roleLabel = computed(() => (this.currentUser()?.isSuperAdmin ? 'Super Admin' : 'Administrativo'));
 
   protected readonly userInitials = computed(() => {
     const name = this.currentUser()?.name;
@@ -601,21 +737,59 @@ export class MainLayoutComponent implements OnInit {
       this.currentUser.set(user);
     });
 
+    // Permisos al dia: si un Super Admin cambio los del rol, el menu se actualiza al entrar.
+    this.authService.access$.subscribe((access) => this.access.set(access));
+    this.checkAccess();
+    // Sesion cerrada por un Super Admin, IP ya no permitida o permisos cambiados:
+    // se revisa cada minuto y al volver a la pestaña (el interceptor saca al login).
+    const timer = setInterval(() => this.checkAccess(), ACCESS_CHECK_MS);
+    const onVisible = () => document.visibilityState === 'visible' && this.checkAccess();
+    document.addEventListener('visibilitychange', onVisible);
+    this.destroyRef.onDestroy(() => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    });
+
     this.breakpointObserver
       .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
       .subscribe((result) => {
         this.isMobile.set(result.matches);
       });
+
+    // Titulo del encabezado = opcion del menu que coincide con la ruta actual.
+    this.updatePageTitle(this.router.url);
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => this.updatePageTitle(e.urlAfterRedirects));
   }
 
+  private checkAccess(): void {
+    if (!this.authService.isAuthenticated()) return;
+    this.authService.refreshAccess().subscribe({
+      next: () => {
+        if (!this.authService.hasPanelAccess()) {
+          this.authService.endLocalSession();
+          void this.router.navigate(['/auth/login'], { queryParams: { denied: 1 } });
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  private updatePageTitle(url: string): void {
+    const path = url.split(/[?#]/)[0];
+    const items = this.navItems.flatMap((item) => [item, ...(item.children ?? [])]);
+    const match = items.find((item) => path === item.route || path.startsWith(`${item.route}/`));
+    this.pageTitle.set(match?.label ?? 'Dashboard');
+    this.currentPath.set(path);
+    // Acordeon: abre el grupo de la pagina actual (y cierra los demas).
+    const group = this.navItems.find((g) => g.children?.some((c) => path === c.route || path.startsWith(`${c.route}/`)));
+    if (group) this.expandedSubmenus.set(new Set([group.route]));
+  }
+
+  /** Acordeon: abrir un grupo cierra el que estaba abierto. */
   toggleSubmenu(item: NavItem): void {
-    const current = new Set(this.expandedSubmenus());
-    if (current.has(item.route)) {
-      current.delete(item.route);
-    } else {
-      current.add(item.route);
-    }
-    this.expandedSubmenus.set(current);
+    this.expandedSubmenus.set(this.isSubmenuExpanded(item) ? new Set() : new Set([item.route]));
   }
 
   isSubmenuExpanded(item: NavItem): boolean {
@@ -626,8 +800,8 @@ export class MainLayoutComponent implements OnInit {
     this.sidebarCollapsed.update((v) => !v);
   }
 
-  navigateToProfile(): void {
-    this.router.navigate(['/admin/perfil']);
+  openChangePassword(): void {
+    this.dialog.open(ChangePasswordDialogComponent, { width: '440px', maxWidth: '95vw', autoFocus: false });
   }
 
   logout(): void {

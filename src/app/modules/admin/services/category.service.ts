@@ -40,7 +40,7 @@ export class CategoryService extends ApiBaseService {
   uploadImage(file: File): Observable<string> {
     const extension = file.name.includes('.') ? file.name.split('.').pop() : undefined;
     return this.http
-      .post<{ data?: PresignedUpload } & Partial<PresignedUpload>>(`${this.baseUrl}/upload/presign`, {
+      .post<{ data?: PresignedUpload } & Partial<PresignedUpload>>(`${this.baseUrl}/admin/upload/presign`, {
         contentType: file.type,
         purpose: 'category',
         extension,

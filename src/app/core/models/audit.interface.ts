@@ -1,6 +1,6 @@
 export interface Audit {
   id: number;
-  userId: number;
+  userId: string;
   userName: string;
   action: string;
   module: string;

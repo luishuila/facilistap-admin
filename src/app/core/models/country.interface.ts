@@ -6,6 +6,9 @@ export interface Country {
   countryContinent: string;
   status: boolean;
   stateCode: string;
+  dialCode?: string;
+  /** Nombre en cada idioma (columna localized_name): { es, en, ... } */
+  localizedName?: Record<string, string> | null;
   img: string;
   createdAt: string;
   updatedAt: string;

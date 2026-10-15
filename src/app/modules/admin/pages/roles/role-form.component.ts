@@ -126,7 +126,7 @@ export interface RoleFormDialogData {
         width: 48px;
         height: 48px;
         border-radius: 12px;
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        background: linear-gradient(135deg, #00b4ff, #0078ff);
         display: flex;
         align-items: center;
         justify-content: center;

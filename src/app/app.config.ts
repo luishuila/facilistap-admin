@@ -15,7 +15,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(
-      withInterceptors([authInterceptor, errorInterceptor])
+      withInterceptors([errorInterceptor, authInterceptor])
     ),
     provideAnimations(),
     { provide: MAT_DATE_LOCALE, useValue: 'es-CO' },

@@ -33,6 +33,9 @@ interface PermissionGroup {
   expanded: boolean;
 }
 
+/** Grupo que reune los permisos de acceso a los modulos del panel (slug panel.*). */
+const PANEL_GROUP = 'Acceso al panel administrativo';
+
 @Component({
   selector: 'app-role-permissions',
   standalone: true,
@@ -114,7 +117,7 @@ interface PermissionGroup {
                         [color]="'primary'"
                       >
                         <div class="permission-info">
-                          <span class="permission-name">{{ permission.name }}</span>
+                          <span class="permission-name">{{ permissionLabel(permission) }}</span>
                           @if (permission.description) {
                             <span class="permission-description">{{ permission.description }}</span>
                           }
@@ -398,6 +401,8 @@ export class RolePermissionsComponent implements OnInit {
     const moduleMap = new Map<string, Permission[]>();
 
     permissions.forEach((perm) => {
+      // El acceso al panel ya no va por roles de la app: se da en "Administrativos".
+      if (this.isPanelPermission(perm)) return;
       const module = perm.module || 'General';
       if (!moduleMap.has(module)) {
         moduleMap.set(module, []);
@@ -413,11 +418,24 @@ export class RolePermissionsComponent implements OnInit {
       });
     });
 
-    groups.sort((a, b) => a.module.localeCompare(b.module));
+    // Primero el acceso al panel; el resto por nombre.
+    groups.sort((a, b) =>
+      a.module === PANEL_GROUP ? -1 : b.module === PANEL_GROUP ? 1 : a.module.localeCompare(b.module),
+    );
     this.permissionGroups.set(groups);
   }
 
+  protected isPanelPermission(perm: Permission): boolean {
+    return (perm.slug ?? '').startsWith('panel.');
+  }
+
+  /** "Panel: Gestión de Usuarios" -> "Gestión de Usuarios" dentro del grupo del panel. */
+  protected permissionLabel(perm: Permission): string {
+    return this.isPanelPermission(perm) ? perm.name.replace(/^Panel:\s*/, '') : perm.name;
+  }
+
   protected formatModuleName(module: string): string {
+    if (module === PANEL_GROUP) return module;
     return module
       .replace(/_/g, ' ')
       .replace(/([a-z])([A-Z])/g, '$1 $2')

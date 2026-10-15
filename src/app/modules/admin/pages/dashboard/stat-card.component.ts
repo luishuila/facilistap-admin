@@ -88,11 +88,11 @@ export type StatCardColor = 'primary' | 'success' | 'warning' | 'danger' | 'info
 
       /* Color themes */
       .primary {
-        border-left-color: #3b82f6;
+        border-left-color: #1daeff;
 
         .stat-icon {
-          background: rgba(59, 130, 246, 0.1);
-          color: #3b82f6;
+          background: rgba(29, 174, 255, 0.1);
+          color: #1daeff;
         }
       }
 

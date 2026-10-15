@@ -4,15 +4,15 @@ import {
   inject,
   DestroyRef,
   signal,
+  computed,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  ElementRef,
+  ViewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  Validators,
-} from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,46 +22,46 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { finalize } from 'rxjs';
-import { HttpEventType } from '@angular/common/http';
+import { finalize, interval } from 'rxjs';
 
 import { StatusBadgeComponent } from '../../../../shared/components/status-badge/status-badge.component';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
 import { PqrsService } from '../../services/pqrs.service';
-import { UserService } from '../../services/user.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import {
-  PQRS,
-  PqrsResponse,
-  PqrsFile,
-  PqrsStatus,
-  PqrsType,
-} from '../../../../core/models/pqrs.interface';
-import { User } from '../../../../core/models/user.interface';
-import { PaginatedQuery } from '../../../../core/models/paginated-query.interface';
+  Complaint,
+  ComplaintAdmin,
+  ComplaintNote,
+  ComplaintStatus,
+} from '../../../../core/models/complaint.interface';
 
-const STATUS_COLORS: Record<PqrsStatus, string> = {
-  PENDIENTE: '#f59e0b',
-  EN_PROCESO: '#3b82f6',
-  RESPONDIDO: '#10b981',
-  CERRADO: '#6b7280',
-  RECHAZADO: '#ef4444',
+const STATUS_COLORS: Record<ComplaintStatus, string> = {
+  pending: '#f59e0b',
+  in_progress: '#1daeff',
+  resolved: '#10b981',
 };
 
-const STATUS_LABELS: Record<PqrsStatus, string> = {
-  PENDIENTE: 'Pendiente',
-  EN_PROCESO: 'En Proceso',
-  RESPONDIDO: 'Respondido',
-  CERRADO: 'Cerrado',
-  RECHAZADO: 'Rechazado',
+const STATUS_LABELS: Record<ComplaintStatus, string> = {
+  pending: 'Pendiente',
+  in_progress: 'En proceso',
+  resolved: 'Resuelto',
 };
 
-const TYPE_LABELS: Record<PqrsType, string> = {
-  QUEJA: 'Queja',
-  PETICION: 'Petición',
-  RECLAMO: 'Reclamo',
-  SUGERENCIA: 'Sugerencia',
+const TYPE_COLORS: Record<string, string> = {
+  petition: '#0b63f6',
+  complaint: '#ef4444',
+  claim: '#f59e0b',
+  suggestion: '#10b981',
+  report: '#8b5cf6',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  petition: 'Petición',
+  complaint: 'Queja',
+  claim: 'Reclamo',
+  suggestion: 'Sugerencia',
+  report: 'Denuncia',
 };
 
 @Component({
@@ -79,7 +79,6 @@ const TYPE_LABELS: Record<PqrsType, string> = {
     MatInputModule,
     MatDividerModule,
     MatSnackBarModule,
-    MatExpansionModule,
     MatProgressSpinnerModule,
     StatusBadgeComponent,
     LoadingSpinnerComponent,
@@ -88,7 +87,7 @@ const TYPE_LABELS: Record<PqrsType, string> = {
   template: `
     <div class="pqrs-detail">
       <div class="dialog-header">
-        <h2 class="dialog-title">Detalle PQRS #{{ pqrs()?.id }}</h2>
+        <h2 class="dialog-title">PQRS #{{ pqrs()?.id }}</h2>
         <button mat-icon-button (click)="close()">
           <mat-icon>close</mat-icon>
         </button>
@@ -96,98 +95,124 @@ const TYPE_LABELS: Record<PqrsType, string> = {
 
       @if (loading()) {
         <app-loading-spinner [diameter]="40" [message]="'Cargando...'" />
-      } @else if (pqrs()) {
-        <mat-tab-group dynamicHeight animationDuration="200ms">
+      } @else if (pqrs(); as p) {
+        <mat-tab-group dynamicHeight animationDuration="200ms" [(selectedIndex)]="tabIndex">
           <mat-tab label="Información">
             <div class="tab-content">
               <div class="info-grid">
                 <div class="info-row">
                   <span class="info-label">Tipo</span>
-                  <app-status-badge
-                    [status]="pqrs()!.type"
-                    [colorMap]="typeColorMap"
-                  />
+                  <app-status-badge [status]="p.type" [colorMap]="typeColors" [labelMap]="typeLabels" />
                 </div>
                 <div class="info-row">
                   <span class="info-label">Estado</span>
-                  <app-status-badge
-                    [status]="pqrs()!.status"
-                    [colorMap]="statusColorMap"
-                  />
+                  <app-status-badge [status]="p.status" [colorMap]="statusColors" [labelMap]="statusLabels" />
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Asunto</span>
-                  <span class="info-value">{{ pqrs()!.subject }}</span>
+                  <span class="info-label">Motivo</span>
+                  <span class="info-value">{{ p.reasonLabel || p.reason }}</span>
                 </div>
                 <div class="info-row">
                   <span class="info-label">Usuario</span>
-                  <span class="info-value">{{ pqrs()!.userName }}</span>
+                  <span class="info-value">{{ p.userName || '—' }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Asignado a</span>
-                  <span class="info-value">{{ pqrs()!.assignedToName || 'Sin asignar' }}</span>
+                  <span class="info-label">Responsable</span>
+                  <span class="info-value">
+                    @if (p.assignedTo) {
+                      {{ adminName(p.assignedTo) }}
+                      <small class="muted">· desde {{ p.assignedAt | date: 'dd/MM/yyyy HH:mm' }}</small>
+                    } @else {
+                      <span class="muted">Sin tomar</span>
+                    }
+                  </span>
                 </div>
                 <div class="info-row">
                   <span class="info-label">Fecha creación</span>
-                  <span class="info-value">{{ pqrs()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span class="info-value">{{ p.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
                 </div>
               </div>
 
               <mat-divider class="section-divider" />
 
-              <div class="description-section">
-                <h4 class="section-title">Descripción</h4>
-                <p class="description-text">{{ pqrs()!.description }}</p>
-              </div>
-            </div>
-          </mat-tab>
+              <h4 class="section-title">Descripción</h4>
+              <p class="description-text">{{ p.description }}</p>
 
-          <mat-tab label="Respuestas">
-            <div class="tab-content">
-              @if (responses().length === 0) {
-                <div class="empty-section">
-                  <mat-icon>chat_bubble_outline</mat-icon>
-                  <p>No hay respuestas registradas</p>
-                </div>
-              } @else {
-                <div class="responses-timeline">
-                  @for (resp of responses(); track resp.id) {
-                    <div class="timeline-item">
-                      <div class="timeline-marker">
-                        <mat-icon>chat_bubble</mat-icon>
-                      </div>
-                      <div class="timeline-content">
-                        <div class="timeline-header">
-                          <span class="timeline-user">{{ resp.userName }}</span>
-                          <span class="timeline-date">{{ resp.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-                        </div>
-                        <p class="timeline-text">{{ resp.response }}</p>
-                      </div>
-                    </div>
+              @if (images().length) {
+                <h4 class="section-title">Imágenes del usuario ({{ images().length }})</h4>
+                <div class="image-grid">
+                  @for (img of images(); track img) {
+                    <a class="image-thumb" [href]="img" target="_blank" rel="noopener" title="Abrir imagen">
+                      <img [src]="img" alt="Imagen adjunta" loading="lazy" />
+                    </a>
                   }
                 </div>
               }
             </div>
           </mat-tab>
 
-          <mat-tab label="Archivos">
+          <mat-tab [label]="'Conversación (' + responses().length + ')'">
             <div class="tab-content">
-              @if (files().length === 0) {
+              <div class="refresh-row">
+                <span class="muted">Se actualiza sola cada 10 s</span>
+                <button mat-button type="button" (click)="refresh()" [disabled]="refreshing()">
+                  <mat-icon>refresh</mat-icon>
+                  Actualizar
+                </button>
+              </div>
+              <div class="timeline">
+                <!-- La solicitud original abre la conversacion, con sus imagenes. -->
+                <div class="msg msg-user">
+                  <div class="msg-header">
+                    <mat-icon>person</mat-icon>
+                    <span class="msg-author">{{ p.userName || 'Usuario' }} · solicitud</span>
+                    <span class="msg-date">{{ p.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                  </div>
+                  <p class="msg-text"><b>{{ p.reasonLabel || p.reason }}</b></p>
+                  @if (p.description) {
+                    <p class="msg-text">{{ p.description }}</p>
+                  }
+                  @if (images().length) {
+                    <div class="msg-images">
+                      @for (img of images(); track img) {
+                        <a class="image-thumb" [href]="img" target="_blank" rel="noopener" title="Abrir imagen">
+                          <img [src]="img" alt="Imagen adjunta" loading="lazy" />
+                        </a>
+                      }
+                    </div>
+                  }
+                </div>
+                @if (responses().length === 0) {
+                  <p class="muted empty-note">Aún no hay respuestas.</p>
+                }
+                  @for (n of responses(); track n.id) {
+                    <div class="msg" [class.msg-user]="n.authorRole === 'user'" [class.msg-system]="n.authorRole === 'system'">
+                      <div class="msg-header">
+                        <mat-icon>{{ n.authorRole === 'user' ? 'person' : n.authorRole === 'system' ? 'info' : 'verified_user' }}</mat-icon>
+                        <span class="msg-author">{{ n.authorRole === 'system' ? 'Sistema' : n.authorName || (n.authorRole === 'user' ? 'Usuario' : 'Administrador') }}</span>
+                        <span class="msg-date">{{ n.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                      </div>
+                      <p class="msg-text">{{ n.note }}</p>
+                    </div>
+                  }
+                <div #conversationEnd></div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab [label]="'Imágenes (' + images().length + ')'">
+            <div class="tab-content">
+              @if (images().length === 0) {
                 <div class="empty-section">
-                  <mat-icon>attach_file</mat-icon>
-                  <p>No hay archivos adjuntos</p>
+                  <mat-icon>image_not_supported</mat-icon>
+                  <p>El usuario no adjuntó imágenes</p>
                 </div>
               } @else {
-                <div class="files-list">
-                  @for (file of files(); track file.id) {
-                    <div class="file-item">
-                      <mat-icon class="file-icon">insert_drive_file</mat-icon>
-                      <span class="file-name">{{ file.fileName }}</span>
-                      <span class="file-type">{{ file.fileType }}</span>
-                      <a mat-icon-button [href]="file.fileUrl" target="_blank" matTooltip="Descargar">
-                        <mat-icon>download</mat-icon>
-                      </a>
-                    </div>
+                <div class="image-grid large">
+                  @for (img of images(); track img) {
+                    <a class="image-thumb" [href]="img" target="_blank" rel="noopener" title="Abrir imagen">
+                      <img [src]="img" alt="Imagen adjunta" loading="lazy" />
+                    </a>
                   }
                 </div>
               }
@@ -195,374 +220,236 @@ const TYPE_LABELS: Record<PqrsType, string> = {
           </mat-tab>
         </mat-tab-group>
 
-        @if (!isClosedStatus(pqrs()!.status)) {
-          <mat-divider class="action-divider" />
-          <div class="management-section">
-            <h4 class="section-title">Gestionar PQRS</h4>
+        <mat-divider class="action-divider" />
 
-            <form [formGroup]="responseForm" class="management-form">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Respuesta</mat-label>
-                <textarea matInput formControlName="response" rows="4" placeholder="Escriba su respuesta..."></textarea>
-                @if (responseForm.get('response')?.hasError('required')) {
-                  <mat-error>La respuesta es requerida</mat-error>
-                }
-              </mat-form-field>
-
-              <div class="management-actions-row">
-                <mat-form-field appearance="outline" class="action-field">
-                  <mat-label>Estado</mat-label>
-                  <mat-select formControlName="status">
-                    @for (st of selectableStatuses; track st.value) {
-                      <mat-option [value]="st.value">
-                        <div class="status-option">
-                          <span class="status-dot" [style.background]="st.color"></span>
-                          <span>{{ st.label }}</span>
-                        </div>
-                      </mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="action-field">
-                  <mat-label>Asignar a</mat-label>
-                  <mat-select formControlName="assignedToId">
-                    <mat-option [value]="null">Sin asignar</mat-option>
-                    @for (user of userList(); track user.id) {
-                      <mat-option [value]="user.id">{{ user.fullName }}</mat-option>
-                    }
-                  </mat-select>
-                </mat-form-field>
-
-                <div class="file-upload-wrapper">
-                  <button mat-stroked-button type="button" (click)="fileInput.click()">
-                    <mat-icon>upload</mat-icon>
-                    Adjuntar archivo
-                  </button>
-                  <input #fileInput type="file" hidden (change)="onFileSelected($event)" />
-                  @if (selectedFile()) {
-                    <span class="selected-file-name">{{ selectedFile()!.name }}</span>
-                  }
+        @switch (p.status) {
+          @case ('pending') {
+            <!-- Paso 1: alguien toma la PQRS (queda En proceso y se avisa al usuario). -->
+            <div class="step-box">
+              <div class="step-text">
+                <mat-icon>assignment_ind</mat-icon>
+                <div>
+                  <strong>Tomar la solicitud</strong>
+                  <span>Elija quién la atenderá. Pasa a <b>En proceso</b> y el usuario recibe un aviso de que su solicitud fue tomada.</span>
                 </div>
-
-                <button
-                  mat-flat-button
-                  color="primary"
-                  type="button"
-                  [disabled]="submitting()"
-                  (click)="onSubmitManagement()"
-                >
+              </div>
+              <div class="step-actions">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="assignee-field">
+                  <mat-label>Responsable</mat-label>
+                  <mat-select [formControl]="assigneeControl">
+                    @for (a of admins(); track a.id) {
+                      <mat-option [value]="a.id">{{ a.name }}{{ a.id === currentUserId ? ' (yo)' : '' }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <button mat-flat-button color="primary" type="button" [disabled]="submitting() || !assigneeControl.value" (click)="take()">
                   @if (submitting()) {
-                    <mat-spinner [diameter]="20" color="accent" />
+                    <mat-spinner diameter="18"></mat-spinner>
                   } @else {
-                    <span>Enviar</span>
+                    <mat-icon>play_arrow</mat-icon>
                   }
+                  Tomar y poner En proceso
                 </button>
               </div>
-            </form>
-          </div>
+            </div>
+          }
+
+          @case ('in_progress') {
+            <!-- Paso 2: responder; el usuario recibe un aviso con cada respuesta. -->
+            <div class="management-section">
+              <h4 class="section-title" #replySection>
+                Responder
+                @if (p.assignedTo) {
+                  <small class="muted">· responsable: {{ adminName(p.assignedTo) }}</small>
+                }
+              </h4>
+              <form [formGroup]="responseForm" class="management-form">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Respuesta para el usuario</mat-label>
+                  <textarea #replyInput matInput formControlName="response" rows="4" placeholder="Escriba la respuesta..."></textarea>
+                  @if (submitAttempted() && responseForm.get('response')?.hasError('required')) {
+                    <mat-error>Escriba la respuesta</mat-error>
+                  }
+                </mat-form-field>
+
+                <div class="management-actions-row">
+                  <mat-form-field appearance="outline" class="action-field" subscriptSizing="dynamic">
+                    <mat-label>Después de enviar</mat-label>
+                    <mat-select formControlName="status">
+                      <mat-option value="in_progress">Dejar en proceso</mat-option>
+                      <mat-option value="resolved">Marcar como resuelta</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <button mat-flat-button color="primary" type="button" [disabled]="submitting()" (click)="onSubmitReply()">
+                    @if (submitting()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    } @else {
+                      <mat-icon>send</mat-icon>
+                    }
+                    Enviar respuesta
+                  </button>
+                </div>
+              </form>
+            </div>
+          }
+
+          @default {
+            <div class="resolved-box">
+              <mat-icon>check_circle</mat-icon>
+              <span>Esta PQRS está resuelta. Para enviar otra respuesta, reábrala.</span>
+              <button mat-stroked-button color="primary" type="button" [disabled]="submitting()" (click)="reopen()">
+                <mat-icon>replay</mat-icon>
+                Reabrir para responder
+              </button>
+            </div>
+          }
         }
       }
     </div>
   `,
   styles: [
     `
-      :host {
-        display: block;
+      :host { display: block; }
+      .pqrs-detail { max-height: 85vh; overflow-y: auto; padding: 8px; }
+      .dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+      .dialog-title { margin: 0; font-size: 20px; font-weight: 600; color: var(--fac-text); }
+      .tab-content { padding: 16px 4px; }
+      .info-grid { display: flex; flex-direction: column; gap: 12px; }
+      .info-row { display: flex; align-items: center; gap: 16px; }
+      .info-label { width: 130px; flex-shrink: 0; font-size: 13px; font-weight: 600; color: #64748b; }
+      .info-value { font-size: 14px; color: var(--fac-text); }
+      .muted { color: #94a3b8; font-weight: 400; }
+      .section-divider, .action-divider { margin: 16px 0; }
+      .section-title { margin: 12px 0 8px; font-size: 15px; font-weight: 600; color: var(--fac-text); }
+      .description-text { margin: 0; font-size: 14px; color: #475569; white-space: pre-wrap; }
+
+      .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+      .image-grid.large { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+      .image-thumb {
+        display: block; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
+        border: 1px solid var(--fac-border); background: #f8fafc;
+        img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
+        &:hover img { transform: scale(1.04); }
       }
 
-      .pqrs-detail {
-        max-height: 85vh;
-        overflow-y: auto;
-        padding: 8px;
-      }
-
-      .dialog-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-      }
-
-      .dialog-title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: #1e293b;
-      }
-
-      .tab-content {
-        padding: 20px 8px;
-      }
-
-      .info-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
-
-      .info-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .info-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: #64748b;
-        min-width: 120px;
-        flex-shrink: 0;
-      }
-
-      .info-value {
-        font-size: 14px;
-        color: #1e293b;
-      }
-
-      .section-divider {
-        margin: 24px 0;
-      }
-
-      .section-title {
-        margin: 0 0 12px;
-        font-size: 16px;
-        font-weight: 600;
-        color: #1e293b;
-      }
-
-      .description-text {
-        margin: 0;
-        font-size: 14px;
-        color: #475569;
-        line-height: 1.7;
-        white-space: pre-wrap;
-      }
-
-      .empty-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 40px 16px;
-        color: #94a3b8;
-        gap: 8px;
-
-        mat-icon {
-          font-size: 36px;
-          width: 36px;
-          height: 36px;
-        }
-
-        p {
-          margin: 0;
-          font-size: 14px;
-        }
-      }
-
-      .responses-timeline {
-        position: relative;
-        padding-left: 28px;
-      }
-
-      .timeline-item {
-        position: relative;
-        padding-bottom: 20px;
-      }
-
-      .timeline-marker {
-        position: absolute;
-        left: -28px;
-        top: 0;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: #e0e7ff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-          color: #6366f1;
-        }
-      }
-
-      .timeline-content {
-        background: #f8fafc;
-        border-radius: 8px;
-        padding: 14px 16px;
-      }
-
-      .timeline-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 8px;
+      .refresh-row {
+        display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 8px;
         font-size: 12px;
+        button { height: 32px; }
+      }
+      .msg-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-top: 8px; }
+      .empty-note { text-align: center; font-size: 13px; margin: 4px 0; }
+      .empty-section { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 32px 0; color: #94a3b8; }
+      .timeline { display: flex; flex-direction: column; gap: 10px; }
+      .msg { padding: 10px 14px; border-radius: 12px; background: var(--fac-primary-soft); max-width: 92%; }
+      .msg-user { background: #f1f5f9; align-self: flex-start; }
+      .msg:not(.msg-user) { align-self: flex-end; }
+      .msg-system { align-self: center; background: #fff7ed; max-width: 100%; }
+      .msg-header {
+        display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+        mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--fac-primary-shade); }
+      }
+      .msg-author { font-size: 13px; font-weight: 600; color: var(--fac-text); }
+      .msg-date { margin-left: auto; font-size: 11px; color: #94a3b8; }
+      .msg-text { margin: 0; font-size: 14px; color: #334155; white-space: pre-wrap; }
+
+      .step-box {
+        display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px;
+        background: var(--fac-primary-soft);
+      }
+      .step-text {
+        display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #33556b;
+        mat-icon { color: var(--fac-primary-shade); }
+        div { display: flex; flex-direction: column; gap: 2px; }
+        strong { font-size: 14px; color: var(--fac-text); }
+      }
+      .step-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      .assignee-field { flex: 1; min-width: 220px; }
+
+      .management-form { display: flex; flex-direction: column; gap: 4px; }
+      .full-width { width: 100%; }
+      .management-actions-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      .action-field { min-width: 220px; }
+      button[mat-flat-button], button[mat-stroked-button] {
+        border-radius: 10px; height: 44px; display: inline-flex; align-items: center; gap: 6px;
       }
 
-      .timeline-user {
-        font-weight: 600;
-        color: #334155;
-      }
-
-      .timeline-date {
-        color: #94a3b8;
-      }
-
-      .timeline-text {
-        margin: 0;
-        font-size: 14px;
-        color: #475569;
-        line-height: 1.5;
-        white-space: pre-wrap;
-      }
-
-      .files-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .file-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: #f8fafc;
-        border-radius: 8px;
-        padding: 10px 14px;
-      }
-
-      .file-icon {
-        color: #6366f1;
-      }
-
-      .file-name {
-        flex: 1;
-        font-size: 14px;
-        color: #1e293b;
-        font-weight: 500;
-      }
-
-      .file-type {
-        font-size: 12px;
-        color: #94a3b8;
-        text-transform: uppercase;
-      }
-
-      .action-divider {
-        margin: 20px 0;
-      }
-
-      .management-section {
-        padding: 0 8px;
-      }
-
-      .management-form {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .management-actions-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .action-field {
-        width: 180px;
-
-        ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-          display: none;
-        }
-      }
-
-      .status-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .status-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-      }
-
-      .file-upload-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .selected-file-name {
-        font-size: 12px;
-        color: #64748b;
-        max-width: 150px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .full-width {
-        width: 100%;
+      .resolved-box {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 10px;
+        background: #ecfdf5; color: #065f46; font-size: 14px;
+        mat-icon { color: #10b981; }
+        span { flex: 1; min-width: 200px; }
       }
     `,
   ],
 })
 export class PqrsDetailComponent implements OnInit {
   private readonly pqrsService = inject(PqrsService);
-  private readonly userService = inject(UserService);
+  private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogRef = inject(MatDialogRef<PqrsDetailComponent>);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly data: { pqrsId: number } = inject(MAT_DIALOG_DATA);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly data: { pqrsId: number; focusReply?: boolean } = inject(MAT_DIALOG_DATA);
+  @ViewChild('replyInput') private replyInput?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('replySection') private replySection?: ElementRef<HTMLElement>;
 
-  protected readonly pqrs = signal<PQRS | null>(null);
-  protected readonly responses = signal<PqrsResponse[]>([]);
-  protected readonly files = signal<PqrsFile[]>([]);
+  protected readonly pqrs = signal<Complaint | null>(null);
+  protected readonly responses = signal<ComplaintNote[]>([]);
+  protected readonly admins = signal<ComplaintAdmin[]>([]);
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
-  protected readonly selectedFile = signal<File | null>(null);
-  protected readonly userList = signal<User[]>([]);
+  protected readonly refreshing = signal(false);
+  protected readonly submitAttempted = signal(false);
+  protected tabIndex = 0;
+  @ViewChild('conversationEnd') private conversationEnd?: ElementRef<HTMLElement>;
+  /** Cada 10 s se traen los mensajes nuevos del usuario mientras el dialogo esta abierto. */
+  private static readonly REFRESH_MS = 10_000;
+  private changed = false;
 
-  protected readonly statusColorMap = STATUS_COLORS;
-  protected readonly typeColorMap: Record<string, string> = {
-    QUEJA: '#ef4444',
-    PETICION: '#3b82f6',
-    RECLAMO: '#f59e0b',
-    SUGERENCIA: '#10b981',
-  };
+  protected readonly statusColors = STATUS_COLORS;
+  protected readonly statusLabels = STATUS_LABELS;
+  protected readonly typeColors = TYPE_COLORS;
+  protected readonly typeLabels = TYPE_LABELS;
+  protected readonly currentUserId = this.authService.getCurrentUser()?.id ?? null;
 
-  protected readonly selectableStatuses = Object.entries(STATUS_LABELS).map(([value, label]) => ({
-    value: value as PqrsStatus,
-    label,
-    color: STATUS_COLORS[value as PqrsStatus],
-  }));
+  /** URLs listas para <img>: S3 tal cual, rutas locales con el host del backend. */
+  protected readonly images = computed(() => (this.pqrs()?.images ?? []).map((i) => this.pqrsService.imageUrl(i)));
 
+  protected readonly assigneeControl = new FormControl<string | null>(this.currentUserId);
   protected responseForm = this.fb.group({
     response: ['', [Validators.required]],
-    status: ['' as string],
-    assignedToId: [null as number | null],
+    status: ['in_progress' as ComplaintStatus],
   });
 
   ngOnInit(): void {
     this.loadPqrs();
-    this.loadUsers();
+    interval(PqrsDetailComponent.REFRESH_MS)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (!this.submitting() && !this.loading()) this.refresh(true);
+      });
+    this.pqrsService
+      .getAdmins()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (admins) => {
+          this.admins.set(admins);
+          if (!admins.some((a) => a.id === this.assigneeControl.value)) {
+            this.assigneeControl.setValue(admins[0]?.id ?? null);
+          }
+        },
+      });
   }
 
-  protected isClosedStatus(status: PqrsStatus): boolean {
-    return status === 'CERRADO' || status === 'RECHAZADO';
+  protected adminName(u: { name?: string; lastname?: string; email?: string } | null | undefined): string {
+    return [u?.name, u?.lastname].filter(Boolean).join(' ') || u?.email || 'Administrador';
   }
 
   private loadPqrs(): void {
     this.loading.set(true);
-
     this.pqrsService
       .getById(this.data.pqrsId)
       .pipe(
@@ -571,16 +458,19 @@ export class PqrsDetailComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          const item = res.data!;
+          const item = res.data;
           if (!item) return;
           this.pqrs.set(item);
-          this.responses.set(item.responses || []);
-          this.files.set(item.files || []);
-
-          this.responseForm.patchValue({
-            status: item.status,
-            assignedToId: item.assignedToId,
-          });
+          // Conversacion en orden cronologico (la mas reciente al final, como un chat).
+          this.responses.set([...item.notes].sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+          this.responseForm.reset({ response: '', status: 'in_progress' });
+          if (this.data.focusReply && item.status === 'in_progress') {
+            this.data.focusReply = false;
+            setTimeout(() => {
+              this.replySection?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              this.replyInput?.nativeElement.focus();
+            }, 150);
+          }
         },
         error: () => {
           this.snackBar.open('Error al cargar el PQRS', 'Cerrar', { duration: 5000 });
@@ -589,100 +479,137 @@ export class PqrsDetailComponent implements OnInit {
       });
   }
 
-  private loadUsers(): void {
-    const query: PaginatedQuery = { limit: 200 };
-    this.userService
-      .getAll(query)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+  /** Trae la PQRS sin spinner; avisa si el usuario escribio algo nuevo. */
+  protected refresh(silent = false): void {
+    if (this.refreshing()) return;
+    this.refreshing.set(true);
+    const before = this.responses().length;
+    this.pqrsService
+      .getById(this.data.pqrsId)
+      .pipe(
+        finalize(() => this.refreshing.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (res) => {
-          this.userList.set(res.items.filter((u) => u.isActive && !u.isBlocked));
+          const item = res.data;
+          if (!item) return;
+          this.pqrs.set(item);
+          const notes = [...item.notes].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+          this.responses.set(notes);
+          const fresh = notes.slice(before).filter((n) => n.authorRole === 'user');
+          if (fresh.length) {
+            this.snackBar.open(`Nuevo mensaje del usuario: "${fresh[fresh.length - 1].note.slice(0, 60)}"`, 'Ver', { duration: 6000 })
+              .onAction()
+              .subscribe(() => {
+                this.tabIndex = 1;
+                this.cdr.markForCheck();
+              });
+            this.scrollConversationToEnd();
+          }
+        },
+        error: () => {
+          if (!silent) this.snackBar.open('No se pudo actualizar la conversación', 'Cerrar', { duration: 4000 });
         },
       });
   }
 
-  protected onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.selectedFile.set(input.files[0]);
-    }
+  private scrollConversationToEnd(): void {
+    setTimeout(() => this.conversationEnd?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
   }
 
-  protected onSubmitManagement(): void {
-    if (this.responseForm.get('response')?.invalid) {
-      this.responseForm.get('response')?.markAsTouched();
+  protected take(): void {
+    const assigneeId = this.assigneeControl.value;
+    if (!assigneeId) return;
+    this.submitting.set(true);
+    this.pqrsService
+      .take(this.data.pqrsId, assigneeId)
+      .pipe(
+        finalize(() => this.submitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.changed = true;
+          this.snackBar.open('Solicitud tomada: el usuario fue notificado', 'Cerrar', { duration: 3000 });
+          this.data.focusReply = true;
+          this.loadPqrs();
+        },
+        error: (err: Error) => this.snackBar.open(err?.message || 'No se pudo tomar la solicitud', 'Cerrar', { duration: 5000 }),
+      });
+  }
+
+  protected onSubmitReply(): void {
+    const control = this.responseForm.get('response');
+    this.submitAttempted.set(true);
+    if (control?.invalid || !String(control?.value ?? '').trim()) {
+      control?.setErrors({ required: true });
       return;
     }
-
+    const text = String(control?.value ?? '').trim();
+    const newStatus = this.responseForm.value.status as ComplaintStatus;
     this.submitting.set(true);
-    const pqrsId = this.data.pqrsId;
-    const value = this.responseForm.value;
 
     this.pqrsService
-      .respond(pqrsId, value.response!)
+      .respond(this.data.pqrsId, text)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => this.afterRespond(pqrsId, value.status, value.assignedToId ?? undefined),
-        error: () => {
-          this.snackBar.open('Error al enviar respuesta', 'Cerrar', { duration: 5000 });
+        next: () => {
+          this.changed = true;
+          if (newStatus === 'resolved') {
+            this.pqrsService
+              .changeStatus(this.data.pqrsId, 'resolved')
+              .pipe(
+                finalize(() => this.submitting.set(false)),
+                takeUntilDestroyed(this.destroyRef),
+              )
+              .subscribe({
+                next: () => this.afterSave('Respuesta enviada y solicitud resuelta'),
+                error: () => {
+                  this.snackBar.open('Respuesta enviada, pero no se pudo marcar como resuelta', 'Cerrar', { duration: 5000 });
+                  this.loadPqrs();
+                },
+              });
+          } else {
+            this.submitting.set(false);
+            this.afterSave('Respuesta enviada: el usuario fue notificado');
+          }
+        },
+        error: (err: Error) => {
           this.submitting.set(false);
+          this.snackBar.open(err?.message || 'Error al enviar la respuesta', 'Cerrar', { duration: 5000 });
         },
       });
   }
 
-  private afterRespond(pqrsId: number, newStatus?: string | null, assignedToId?: number | null): void {
-    const operations: Promise<void>[] = [];
+  private afterSave(msg: string): void {
+    this.snackBar.open(msg, 'Cerrar', { duration: 3000 });
+    this.submitAttempted.set(false);
+    this.tabIndex = 1;
+    this.loadPqrs();
+    this.scrollConversationToEnd();
+  }
 
-    if (newStatus && newStatus !== this.pqrs()?.status) {
-      operations.push(
-        new Promise<void>((resolve, reject) => {
-          this.pqrsService
-            .changeStatus(pqrsId, newStatus as PqrsStatus)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({ next: () => resolve(), error: () => reject() });
-        }),
-      );
-    }
-
-    if (assignedToId != null && assignedToId !== this.pqrs()?.assignedToId) {
-      operations.push(
-        new Promise<void>((resolve, reject) => {
-          this.pqrsService
-            .assign(pqrsId, assignedToId)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({ next: () => resolve(), error: () => reject() });
-        }),
-      );
-    }
-
-    if (this.selectedFile()) {
-      const formData = new FormData();
-      formData.append('file', this.selectedFile()!);
-      operations.push(
-        new Promise<void>((resolve, reject) => {
-          this.pqrsService
-            .uploadFile(pqrsId, formData)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({ next: () => resolve(), error: () => reject() });
-        }),
-      );
-    }
-
-    Promise.all(operations)
-      .then(() => {
-        this.snackBar.open('Gestión realizada correctamente', 'Cerrar', { duration: 3000 });
-        this.loadPqrs();
-        this.responseForm.get('response')?.reset();
-        this.selectedFile.set(null);
-        this.submitting.set(false);
-      })
-      .catch(() => {
-        this.snackBar.open('Error en alguna de las operaciones', 'Cerrar', { duration: 5000 });
-        this.submitting.set(false);
+  /** Resuelta -> En proceso, para poder responder de nuevo. */
+  protected reopen(): void {
+    this.submitting.set(true);
+    this.pqrsService
+      .changeStatus(this.data.pqrsId, 'in_progress')
+      .pipe(
+        finalize(() => this.submitting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.changed = true;
+          this.data.focusReply = true;
+          this.loadPqrs();
+        },
+        error: () => this.snackBar.open('No se pudo reabrir la PQRS', 'Cerrar', { duration: 5000 }),
       });
   }
 
   protected close(): void {
-    this.dialogRef.close(false);
+    this.dialogRef.close(this.changed);
   }
 }

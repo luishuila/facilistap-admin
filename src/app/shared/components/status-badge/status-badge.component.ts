@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
@@ -46,10 +46,12 @@ import { MatIconModule } from '@angular/material/icon';
     `,
   ],
 })
-export class StatusBadgeComponent implements OnInit {
+export class StatusBadgeComponent implements OnInit, OnChanges {
   @Input() status = '';
   @Input() colorMap: Record<string, string> = {};
   @Input() showDot = true;
+  /** Texto a mostrar por estado (p. ej. { pending: 'Pendiente' }); si falta, se formatea el codigo. */
+  @Input() labelMap: Record<string, string> = {};
 
   protected label = '';
 
@@ -62,10 +64,10 @@ export class StatusBadgeComponent implements OnInit {
     bloqueado: '#ef4444',
     pending: '#f59e0b',
     pendiente: '#f59e0b',
-    completed: '#3b82f6',
-    completado: '#3b82f6',
-    open: '#3b82f6',
-    abierto: '#3b82f6',
+    completed: '#1daeff',
+    completado: '#1daeff',
+    open: '#1daeff',
+    abierto: '#1daeff',
     closed: '#64748b',
     cerrado: '#64748b',
     in_progress: '#8b5cf6',
@@ -83,7 +85,15 @@ export class StatusBadgeComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    this.label = this.formatLabel(this.status);
+    this.updateLabel();
+  }
+
+  ngOnChanges(): void {
+    this.updateLabel();
+  }
+
+  private updateLabel(): void {
+    this.label = this.labelMap[this.status] ?? this.formatLabel(this.status);
   }
 
   protected currentColor(): string {

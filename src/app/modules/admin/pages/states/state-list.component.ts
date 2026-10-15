@@ -13,6 +13,9 @@ import { RouterModule } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
@@ -22,6 +25,7 @@ import { CountryService } from '../../services/country.service';
 import { StateCountry } from '../../../../core/models/state.interface';
 import { Country } from '../../../../core/models/country.interface';
 import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared/components/data-table/data-table.types';
+import { StateFormComponent } from './state-form.component';
 
 @Component({
   selector: 'app-state-list',
@@ -33,6 +37,9 @@ import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared
     MatSnackBarModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
     DataTableComponent,
     EmptyStateComponent,
   ],
@@ -43,6 +50,7 @@ import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared
 export class StateListComponent implements OnInit {
   private readonly stateService = inject(StateService);
   private readonly countryService = inject(CountryService);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -54,7 +62,7 @@ export class StateListComponent implements OnInit {
   protected readonly searchTerm = signal('');
   protected readonly sortActive = signal('stateName');
   protected readonly sortDirection = signal<'asc' | 'desc'>('asc');
-  protected readonly selectedCountryId = signal<number | null>(null);
+  protected readonly selectedCountryCode = signal<string | null>(null);
   protected readonly countries = signal<Country[]>([]);
   protected readonly countriesLoading = signal(false);
 
@@ -62,6 +70,7 @@ export class StateListComponent implements OnInit {
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
     { key: 'stateCode', label: 'Código', sortable: true, width: '100px' },
     { key: 'stateName', label: 'Departamento', sortable: true },
+    { key: 'translations', label: 'Idiomas', width: '150px' },
     { key: 'regionState', label: 'Región', sortable: true },
     { key: 'countryCode', label: 'País', sortable: true, width: '100px' },
     {
@@ -111,8 +120,8 @@ export class StateListComponent implements OnInit {
     this.loading.set(true);
 
     const filters: Record<string, unknown> = {};
-    if (this.selectedCountryId()) {
-      filters['countryId'] = this.selectedCountryId();
+    if (this.selectedCountryCode()) {
+      filters['countryCode'] = this.selectedCountryCode();
     }
 
     this.stateService
@@ -141,8 +150,8 @@ export class StateListComponent implements OnInit {
       });
   }
 
-  protected onCountryFilterChange(countryId: number | null): void {
-    this.selectedCountryId.set(countryId);
+  protected onCountryFilterChange(countryCode: string | null): void {
+    this.selectedCountryCode.set(countryCode);
     this.currentPage.set(0);
     this.loadStates();
   }
@@ -167,12 +176,43 @@ export class StateListComponent implements OnInit {
   }
 
   protected onRowAction(event: RowAction<StateCountry>): void {
-    if (event.action === 'view') {
-      this.snackBar.open(
-        `Departamento: ${event.row.stateName} (${event.row.stateCode}) - Región: ${event.row.regionState}`,
-        'Cerrar',
-        { duration: 5000 }
-      );
+    switch (event.action) {
+      case 'edit':
+        this.openFormDialog(event.row);
+        break;
+      case 'view':
+        this.snackBar.open(
+          `Departamento: ${event.row.stateName} (${event.row.stateCode}) - Región: ${event.row.regionState}`,
+          'Cerrar',
+          { duration: 5000 }
+        );
+        break;
     }
+  }
+
+  protected onAdd(): void {
+    this.openFormDialog();
+  }
+
+  private openFormDialog(state?: StateCountry): void {
+    const dialogRef = this.dialog.open<StateFormComponent, { state?: StateCountry }, boolean>(
+      StateFormComponent,
+      {
+        width: '720px',
+        maxWidth: '95vw',
+        disableClose: true,
+        autoFocus: false,
+        data: { state },
+      },
+    );
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result) {
+          this.loadStates();
+        }
+      });
   }
 }

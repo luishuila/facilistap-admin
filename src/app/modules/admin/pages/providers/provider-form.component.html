@@ -17,6 +17,30 @@
   </div>
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-body">
+    @if (!isEdit) {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Dueño del negocio (usuario de la app)</mat-label>
+        <mat-icon matPrefix>person_search</mat-icon>
+        <input matInput [formControl]="ownerSearch" [matAutocomplete]="ownerAuto" placeholder="Busque por nombre, usuario o email" autocomplete="off" />
+        <mat-autocomplete #ownerAuto="matAutocomplete" [displayWith]="ownerLabel" (optionSelected)="selectOwner($event.option.value)">
+          @for (u of ownerOptions(); track u.id) {
+            <mat-option [value]="u">{{ ownerLabel(u) }}</mat-option>
+          }
+        </mat-autocomplete>
+        <mat-hint>{{ owner() ? 'Seleccionado' : 'Escriba al menos 2 letras y elija de la lista' }}</mat-hint>
+      </mat-form-field>
+    } @else {
+      <!-- El dueño no se cambia desde aquí: solo se muestra. -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Dueño del negocio</mat-label>
+        <mat-icon matPrefix>person</mat-icon>
+        <input matInput readonly [value]="ownerDisplay" />
+        @if (ownerEmail) {
+          <mat-hint>{{ ownerEmail }}</mat-hint>
+        }
+      </mat-form-field>
+    }
+
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Nombre</mat-label>
       <mat-icon matPrefix>business</mat-icon>
@@ -26,6 +50,15 @@
       }
       @if (form.controls['name'].hasError('maxlength')) {
         <mat-error>Máximo 200 caracteres</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Usuario</mat-label>
+      <mat-icon matPrefix>alternate_email</mat-icon>
+      <input matInput formControlName="username" placeholder="Ej: proveedor.xyz" autocomplete="off" />
+      @if (form.controls['username'].hasError('required') && form.controls['username'].touched) {
+        <mat-error>El usuario es requerido</mat-error>
       }
     </mat-form-field>
 
@@ -59,15 +92,16 @@
     </div>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Dirección</mat-label>
-      <mat-icon matPrefix>location_on</mat-icon>
-      <input matInput formControlName="address" placeholder="Ej: Calle 123 #45-67, Bogotá" autocomplete="off" />
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Persona de Contacto</mat-label>
-      <mat-icon matPrefix>person</mat-icon>
-      <input matInput formControlName="contactPerson" placeholder="Ej: María García" autocomplete="off" />
+      <mat-label>Categorías (1 a 3)</mat-label>
+      <mat-icon matPrefix>category</mat-icon>
+      <mat-select formControlName="categories" multiple>
+        @for (category of categories(); track category.id) {
+          <mat-option [value]="category.id">{{ categoryName(category.name) }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls['categories'].hasError('required') && form.controls['categories'].touched) {
+        <mat-error>Seleccione al menos una categoría</mat-error>
+      }
     </mat-form-field>
 
     <div class="form-actions">

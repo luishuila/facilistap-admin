@@ -26,9 +26,9 @@ import {
   SortEvent,
   PageEvent,
   RowAction,
+  RowActionOption,
 } from '../../../../shared/components/data-table/data-table.types';
 import { EmployeeFormComponent } from './employee-form.component';
-import { EmployeeAssignRoleComponent } from './employee-assign-role.component';
 
 @Component({
   selector: 'app-employee-list',
@@ -64,13 +64,19 @@ export class EmployeeListComponent implements OnInit {
   protected readonly sortActive = signal('id');
   protected readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
+  /** Sin "Ver": el formulario de edición ya muestra todo. */
+  protected readonly rowActions: RowActionOption[] = [
+    { action: 'edit', label: 'Editar', icon: 'edit' },
+    { action: 'toggle', label: 'Activar / desactivar', icon: 'toggle_on' },
+    { action: 'delete', label: 'Eliminar', icon: 'delete', danger: true },
+  ];
+
   protected readonly columns: TableColumn[] = [
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
-    { key: 'firstName', label: 'Nombre', sortable: true },
-    { key: 'lastName', label: 'Apellido', sortable: true },
+    { key: 'userFullName', label: 'Empleado', sortable: true },
     { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Teléfono', width: '140px' },
-    { key: 'roleName', label: 'Rol', width: '130px' },
+    { key: 'providerName', label: 'Empresa', sortable: true },
+    { key: 'position', label: 'Cargo', sortable: true },
     {
       key: 'isActive',
       label: 'Estado',
@@ -152,13 +158,10 @@ export class EmployeeListComponent implements OnInit {
         this.openFormDialog(event.row);
         break;
       case 'toggle':
-        this.toggleEmployee(event.row);
+        this.confirmToggle(event.row);
         break;
       case 'delete':
         this.confirmDelete(event.row);
-        break;
-      case 'change-role':
-        this.openAssignRoleDialog(event.row);
         break;
     }
   }
@@ -189,47 +192,33 @@ export class EmployeeListComponent implements OnInit {
       });
   }
 
-  private openAssignRoleDialog(employee: Employee): void {
-    const dialogRef = this.dialog.open<
-      EmployeeAssignRoleComponent,
-      { employee: Employee },
-      boolean
-    >(EmployeeAssignRoleComponent, {
-      width: '480px',
-      disableClose: true,
-      autoFocus: false,
-      data: { employee },
-    });
-
-    dialogRef
-      .afterClosed()
+  private confirmToggle(row: Employee): void {
+    const activate = !row.isActive;
+    this.confirmDialog
+      .confirm({
+        title: activate ? 'Activar empleado' : 'Desactivar empleado',
+        message: activate
+          ? `${row.userFullName || 'El empleado'} volverá a estar disponible en la app.`
+          : `${row.userFullName || 'El empleado'} no se ofrecerá para reservar citas (sus datos y citas no se borran). Podrá activarlo de nuevo cuando quiera.`,
+        confirmText: activate ? 'Activar' : 'Desactivar',
+        cancelText: 'Cancelar',
+        icon: activate ? 'toggle_on' : 'toggle_off',
+        color: activate ? '#22c55e' : '#ef4444',
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((result) => {
-        if (result) {
-          this.loadEmployees();
-        }
-      });
-  }
-
-  private toggleEmployee(employee: Employee): void {
-    this.employeeService
-      .toggle(employee.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          const newStatus = !employee.isActive;
-          this.snackBar.open(
-            `Empleado ${newStatus ? 'activado' : 'desactivado'} correctamente`,
-            'Cerrar',
-            { duration: 3000 }
-          );
-          this.loadEmployees();
-        },
-        error: () => {
-          this.snackBar.open('Error al cambiar estado', 'Cerrar', {
-            duration: 5000,
+      .subscribe((ok) => {
+        if (!ok) return;
+        this.employeeService
+          .setActive(row.id, activate)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: () => {
+              this.snackBar.open(activate ? 'Empleado activado' : 'Empleado desactivado', 'Cerrar', { duration: 3000 });
+              this.loadEmployees();
+            },
+            error: (err: Error) =>
+              this.snackBar.open(err?.message || 'No se pudo cambiar el estado', 'Cerrar', { duration: 5000 }),
           });
-        },
       });
   }
 

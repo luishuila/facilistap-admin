@@ -4,6 +4,7 @@ import {
   inject,
   DestroyRef,
   signal,
+  computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -13,13 +14,21 @@ import { RouterModule } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs';
 
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
 import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 import { CityService } from '../../services/city.service';
+import { CountryService } from '../../services/country.service';
+import { StateService } from '../../services/state.service';
+import { Country } from '../../../../core/models/country.interface';
+import { StateCountry } from '../../../../core/models/state.interface';
 import { City } from '../../../../core/models/city.interface';
 import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared/components/data-table/data-table.types';
+import { CityFormComponent, CityFormData } from './city-form.component';
 
 @Component({
   selector: 'app-city-list',
@@ -31,6 +40,9 @@ import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared
     MatSnackBarModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
     DataTableComponent,
     EmptyStateComponent,
   ],
@@ -40,6 +52,9 @@ import { TableColumn, SortEvent, PageEvent, RowAction } from '../../../../shared
 })
 export class CityListComponent implements OnInit {
   private readonly cityService = inject(CityService);
+  private readonly countryService = inject(CountryService);
+  private readonly stateService = inject(StateService);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -52,13 +67,34 @@ export class CityListComponent implements OnInit {
   protected readonly sortActive = signal('cityName');
   protected readonly sortDirection = signal<'asc' | 'desc'>('asc');
   protected readonly selectedStateCode = signal<string | null>(null);
+  protected readonly selectedCountryCode = signal<string | null>(null);
 
-  protected readonly stateCodes = signal<string[]>([]);
+  protected readonly countries = signal<Country[]>([]);
+  protected readonly states = signal<StateCountry[]>([]);
+  protected readonly statesLoading = signal(false);
+
+  /** Texto bajo el total: a que corresponde la cifra segun los filtros. */
+  protected readonly totalLabel = computed(() => {
+    const stateCode = this.selectedStateCode();
+    if (stateCode) {
+      const state = this.states().find((s) => s.stateCode === stateCode);
+      return `ciudades en ${state?.stateName ?? stateCode}`;
+    }
+    const countryCode = this.selectedCountryCode();
+    if (countryCode) {
+      const country = this.countries().find((c) => c.countryCode === countryCode);
+      return `ciudades en ${country?.countryName ?? countryCode}`;
+    }
+    return 'ciudades en total';
+  });
 
   protected readonly columns: TableColumn[] = [
     { key: 'id', label: 'ID', sortable: true, type: 'number', width: '80px' },
     { key: 'cityName', label: 'Ciudad', sortable: true },
-    { key: 'stateCode', label: 'Departamento', sortable: true, width: '120px' },
+    { key: 'translations', label: 'Idiomas', width: '150px' },
+    { key: 'stateName', label: 'Departamento', sortable: true },
+    { key: 'stateCode', label: 'Código', sortable: true, width: '100px' },
+    { key: 'countryCode', label: 'País', width: '80px', align: 'center' },
     {
       key: 'status',
       label: 'Estado',
@@ -75,6 +111,48 @@ export class CityListComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.loadCountries();
+    this.loadCities();
+  }
+
+  private loadCountries(): void {
+    this.countryService
+      .getAll({ page: 1, limit: 300, sortBy: 'countryName', sortOrder: 'asc' })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => this.countries.set(res?.items ?? []),
+        error: () => this.snackBar.open('Error al cargar países', 'Cerrar', { duration: 5000 }),
+      });
+  }
+
+  private loadStates(countryCode: string): void {
+    this.statesLoading.set(true);
+    this.stateService
+      .getAll({ page: 1, limit: 500, sortBy: 'stateName', sortOrder: 'asc', filters: { countryCode } })
+      .pipe(
+        finalize(() => this.statesLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (res) => this.states.set(res?.items ?? []),
+        error: () => this.snackBar.open('Error al cargar departamentos', 'Cerrar', { duration: 5000 }),
+      });
+  }
+
+  protected onCountryChange(countryCode: string | null): void {
+    this.selectedCountryCode.set(countryCode);
+    this.selectedStateCode.set(null);
+    this.states.set([]);
+    if (countryCode) this.loadStates(countryCode);
+    this.currentPage.set(0);
+    this.loadCities();
+  }
+
+  protected clearFilters(): void {
+    this.selectedCountryCode.set(null);
+    this.selectedStateCode.set(null);
+    this.states.set([]);
+    this.currentPage.set(0);
     this.loadCities();
   }
 
@@ -82,9 +160,8 @@ export class CityListComponent implements OnInit {
     this.loading.set(true);
 
     const filters: Record<string, unknown> = {};
-    if (this.selectedStateCode()) {
-      filters['stateCode'] = this.selectedStateCode();
-    }
+    if (this.selectedCountryCode()) filters['countryCode'] = this.selectedCountryCode();
+    if (this.selectedStateCode()) filters['stateCode'] = this.selectedStateCode();
 
     this.cityService
       .getAll({
@@ -103,11 +180,6 @@ export class CityListComponent implements OnInit {
         next: (res) => {
           this.cities.set(res?.items ?? []);
           this.totalItems.set(res?.total ?? 0);
-
-          if (!this.selectedStateCode()) {
-            const codes = [...new Set((res?.items ?? []).map((c) => c.stateCode))].sort();
-            this.stateCodes.set(codes);
-          }
         },
         error: () => {
           this.cities.set([]);
@@ -143,12 +215,44 @@ export class CityListComponent implements OnInit {
   }
 
   protected onRowAction(event: RowAction<City>): void {
-    if (event.action === 'view') {
-      this.snackBar.open(
-        `Ciudad: ${event.row.cityName} - Departamento: ${event.row.stateCode}`,
-        'Cerrar',
-        { duration: 5000 }
-      );
+    switch (event.action) {
+      case 'edit':
+        this.openFormDialog(event.row);
+        break;
+      case 'view':
+        this.snackBar.open(
+          `Ciudad: ${event.row.cityName} - Departamento: ${event.row.stateName ?? event.row.stateCode}`,
+          'Cerrar',
+          { duration: 5000 }
+        );
+        break;
     }
+  }
+
+  protected onAdd(): void {
+    this.openFormDialog();
+  }
+
+  private openFormDialog(city?: City): void {
+    const dialogRef = this.dialog.open<CityFormComponent, CityFormData, boolean>(
+      CityFormComponent,
+      {
+        width: '720px',
+        maxWidth: '95vw',
+        disableClose: true,
+        autoFocus: false,
+        // Al crear, arranca con el pais/departamento del filtro activo.
+        data: city ? { city } : { countryCode: this.selectedCountryCode(), stateCode: this.selectedStateCode() },
+      },
+    );
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result) => {
+        if (result) {
+          this.loadCities();
+        }
+      });
   }
 }

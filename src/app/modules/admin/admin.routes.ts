@@ -64,6 +64,13 @@ export const ADMIN_ROUTES: Routes = [
       import('./pages/pqrs/pqrs-list.component').then((m) => m.PqrsListComponent),
   },
   {
+    path: 'billetera',
+    canActivate: [panelModuleGuard],
+    data: { panelModule: 'store' },
+    loadComponent: () =>
+      import('./pages/store/wallet-config.component').then((m) => m.WalletConfigComponent),
+  },
+  {
     path: 'tienda',
     canActivate: [panelModuleGuard],
     data: { panelModule: 'store' },
@@ -104,6 +111,13 @@ export const ADMIN_ROUTES: Routes = [
     data: { panelModule: 'subscriptions' },
     loadComponent: () =>
       import('./pages/subscriptions/subscription-list.component').then((m) => m.SubscriptionListComponent),
+  },
+  {
+    path: 'promociones',
+    canActivate: [panelModuleGuard],
+    data: { panelModule: 'promotions' },
+    loadComponent: () =>
+      import('./pages/promotions/promotion-admin.component').then((m) => m.PromotionAdminComponent),
   },
   {
     path: 'notificaciones',

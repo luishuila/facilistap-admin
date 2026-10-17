@@ -23,6 +23,37 @@ export interface AppointmentPaymentItem {
   settlementNote: string | null;
 }
 
+/** Descuento de un paquete: % sobre lo que recibe o valor fijo. */
+export type PackageDiscountType = 'PERCENT' | 'AMOUNT';
+
+/** Paquete de recarga de la billetera: el usuario recibe `value` y paga `price` (= value - descuento). */
+export interface WalletPackage {
+  id: number;
+  code: string;
+  value: number;
+  discountType: PackageDiscountType | null;
+  discountValue: number;
+  price: number;
+  isActive: boolean;
+}
+
+/** Lo que se envía al crear o editar un paquete (el precio lo calcula el servidor). */
+export interface WalletPackageInput {
+  value?: number;
+  discountType?: PackageDiscountType | null;
+  discountValue?: number;
+  isActive?: boolean;
+}
+
+/** Configuración de la billetera (Tienda → Billetera de la app). */
+export interface WalletConfig {
+  currency: string;
+  coinValue: number;
+  /** Recarga libre ("Otro valor"). */
+  topUp: { min: number; max: number };
+  packages: WalletPackage[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class StoreAdminService extends ApiBaseService {
   // StoreAdminController (/api/admin/store), modulo store.
@@ -31,6 +62,28 @@ export class StoreAdminService extends ApiBaseService {
   payments(settled?: boolean | null): Observable<AppointmentPaymentItem[]> {
     const params = settled == null ? undefined : { settled: String(settled) };
     return this._getAll<AppointmentPaymentItem>(`${this.endpoint}/payments`, params).pipe(map((r) => r.data ?? []));
+  }
+
+  // ─── Billetera ───
+
+  walletConfig(): Observable<WalletConfig> {
+    return this._getById<WalletConfig>(this.endpoint, 'wallet-config').pipe(map((r) => r.data as WalletConfig));
+  }
+
+  updateTopUp(min: number, max: number): Observable<WalletConfig> {
+    return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'top-up', { min, max }).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  createPackage(body: WalletPackageInput): Observable<WalletConfig> {
+    return this._create<WalletConfig>(`${this.endpoint}/wallet-config/packages`, body).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  updatePackage(id: number, body: WalletPackageInput): Observable<WalletConfig> {
+    return this._patch<WalletConfig>(`${this.endpoint}/wallet-config/packages`, id, body).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  deletePackage(id: number): Observable<WalletConfig> {
+    return this._delete<WalletConfig>(`${this.endpoint}/wallet-config/packages`, id).pipe(map((r) => r.data as WalletConfig));
   }
 
   /** Marca como liquidados (ya se le pagó al proveedor). */

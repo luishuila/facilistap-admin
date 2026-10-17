@@ -675,6 +675,8 @@ export class MainLayoutComponent implements OnInit {
         { label: 'Roles de empleados', icon: 'assignment_ind', route: '/admin/roles-empleados', module: 'employee_roles' },
         { label: 'Suscripciones', icon: 'workspace_premium', route: '/admin/suscripciones', module: 'subscriptions' },
         { label: 'Tienda y liquidaciones', icon: 'storefront', route: '/admin/tienda', module: 'store' },
+        { label: 'Billetera', icon: 'account_balance_wallet', route: '/admin/billetera', module: 'store' },
+        { label: 'Promociones', icon: 'local_offer', route: '/admin/promociones', module: 'promotions' },
       ],
     },
     {

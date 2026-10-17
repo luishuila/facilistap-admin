@@ -18,6 +18,7 @@ export const PANEL_MODULE_ROUTES: Record<string, string> = {
   pqrs: '/admin/pqrs',
   subscriptions: '/admin/suscripciones',
   notifications: '/admin/notificaciones',
+  promotions: '/admin/promociones',
   audit: '/admin/auditoria',
   languages: '/admin/idiomas',
   settings: '/admin/configuracion',

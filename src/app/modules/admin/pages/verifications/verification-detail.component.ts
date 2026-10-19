@@ -65,8 +65,21 @@ interface DocView {
           <div><span>Email</span><strong>{{ v.userEmail || '—' }}</strong></div>
           <div><span>Enviada</span><strong>{{ v.createdAt | date: 'dd/MM/yyyy HH:mm' }}</strong></div>
           <div><span>Aceptó términos</span><strong>{{ v.termsAcceptedAt | date: 'dd/MM/yyyy HH:mm' }}</strong></div>
-          <div><span>Pago</span><strong>{{ v.amount > 0 ? (v.currency + ' ' + (v.amount | number: '1.0-0')) : 'Gratis' }} · {{ v.paidAt ? ('pagado ' + (v.paidAt | date: 'dd/MM/yyyy')) : 'sin pagar' }}</strong></div>
-          @if (v.expiresAt) {
+          <div><span>Pago</span><strong>
+            @if (v.status === 'PENDING' && !v.paidAt) {
+              Al aprobar, el usuario elige plan
+            } @else if (v.status === 'AWAITING_PAYMENT' && !v.planCode) {
+              Plan por elegir · sin pagar
+            } @else {
+              {{ v.amount > 0 ? (v.currency + ' ' + (v.amount | number: '1.0-0')) : 'Gratis' }} · {{ v.paidAt ? ('pagado ' + (v.paidAt | date: 'dd/MM/yyyy')) : 'sin pagar' }}
+            }
+          </strong></div>
+          @if (v.planMonths) {
+            <div><span>Plan</span><strong>{{ v.planMonths === 12 ? '1 año' : v.planMonths === 1 ? '1 mes' : v.planMonths + ' meses' }}</strong></div>
+          }
+          @if (v.payBefore) {
+            <div><span>Debe pagar antes del</span><strong>{{ v.payBefore | date: 'dd/MM/yyyy HH:mm' }}</strong></div>
+          } @else if (v.expiresAt && v.status === 'APPROVED') {
             <div><span>Insignia vigente hasta</span><strong>{{ v.expiresAt | date: 'dd/MM/yyyy' }}</strong></div>
           }
           @if (v.reviewedAt) {
@@ -104,7 +117,14 @@ interface DocView {
             <mat-label>Motivo del rechazo (lo verá el usuario)</mat-label>
             <textarea matInput rows="3" [(ngModel)]="reason" maxlength="1000"
               placeholder="Ej: La foto del documento está borrosa; súbala de nuevo con buena luz."></textarea>
+            <mat-hint>Obligatorio (mínimo 5 caracteres). Le llega al usuario en la campana y en su pantalla de verificación.</mat-hint>
           </mat-form-field>
+          <!-- Motivos frecuentes: un toque y se puede editar -->
+          <div class="quick-reasons">
+            @for (q of quickReasons; track q) {
+              <button mat-stroked-button type="button" (click)="reason = q">{{ q }}</button>
+            }
+          </div>
         }
 
         <div class="actions">
@@ -115,7 +135,7 @@ interface DocView {
                 <mat-icon>block</mat-icon> Rechazar
               </button>
               <button mat-flat-button color="primary" type="button" (click)="approve()" [disabled]="busy()">
-                <mat-icon>verified</mat-icon> Aprobar y verificar
+                <mat-icon>verified</mat-icon> Aprobar documentos
               </button>
             } @else {
               <button mat-stroked-button type="button" (click)="rejecting.set(false)" [disabled]="busy()">Volver</button>
@@ -147,11 +167,19 @@ interface DocView {
       .st-APPROVED { background: rgba(11, 99, 246, 0.12); color: #0b63f6; }
       .st-AWAITING_PAYMENT { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
       .st-REJECTED { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+      .st-CANCELED { background: rgba(100, 116, 139, 0.14); color: #475569; }
       .center { display: grid; place-items: center; padding: 48px 0; }
       .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 14px;
         div { padding: 10px 12px; border-radius: 12px; background: var(--fac-surface-muted, #f5f7fb); display: flex; flex-direction: column; gap: 2px; }
         span { font-size: 12px; color: var(--fac-text-muted); }
         strong { font-size: 14px; color: var(--fac-text); word-break: break-word; } }
+      .approve-box { margin: 4px 0 12px; }
+      .date-field { width: 240px; max-width: 100%; }
+      .approve-hint { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 12px;
+        background: rgba(11, 99, 246, 0.07); color: #1e3a8a; font-size: 13px; line-height: 1.4; }
+      .approve-hint mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+      .quick-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+      .quick-reasons button { font-size: 12px; line-height: 1.3; height: auto; padding: 6px 10px; white-space: normal; text-align: left; }
       .reason { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; margin-bottom: 14px; border-radius: 12px;
         background: rgba(239, 68, 68, 0.08); color: #b91c1c; font-size: 14px; mat-icon { flex-shrink: 0; } }
       .docs-title { margin: 6px 0 10px; font-size: 15px; font-weight: 600; color: var(--fac-text); }
@@ -184,6 +212,12 @@ export class VerificationDetailComponent implements OnInit, OnDestroy {
   protected readonly busy = signal(false);
   protected readonly rejecting = signal(false);
   protected reason = '';
+  protected readonly quickReasons = [
+    'La foto del documento está borrosa o incompleta; súbala de nuevo con buena luz.',
+    'La selfie no muestra claramente su rostro junto al documento.',
+    'Los datos del documento no coinciden con los de la cuenta.',
+    'El documento está vencido o no es válido.',
+  ];
   /** Si hubo cambios, la lista se recarga al cerrar. */
   protected changed = false;
 
@@ -229,11 +263,16 @@ export class VerificationDetailComponent implements OnInit, OnDestroy {
   }
 
   protected statusLabel(s: string): string {
-    return s === 'AWAITING_PAYMENT' ? 'Pago pendiente' : s === 'PENDING' ? 'En revisión' : s === 'APPROVED' ? 'Verificado' : 'Rechazado';
+    return s === 'AWAITING_PAYMENT' ? 'Aprobada, falta pago' : s === 'PENDING' ? 'En revisión' : s === 'APPROVED' ? 'Verificado'
+      : s === 'CANCELED' ? 'Cancelada' : 'Rechazado';
   }
 
+  /** Aprueba: la fecha límite de pago sale de Tabla maestra (Días para pagar una verificación aprobada). */
   protected approve(): void {
-    this.run(this.service.approve(this.data.id), 'Verificación aprobada: ya tiene la insignia');
+    this.run(
+      this.service.approve(this.data.id),
+      'Aprobada: el usuario tiene el plazo de Tabla maestra para pagar (si es gratis, ya quedó activa)',
+    );
   }
 
   protected reject(): void {

@@ -71,6 +71,13 @@ export const ADMIN_ROUTES: Routes = [
       import('./pages/store/wallet-config.component').then((m) => m.WalletConfigComponent),
   },
   {
+    path: 'retiros',
+    canActivate: [panelModuleGuard],
+    data: { panelModule: 'store' },
+    loadComponent: () =>
+      import('./pages/store/provider-withdrawals.component').then((m) => m.ProviderWithdrawalsComponent),
+  },
+  {
     path: 'tienda',
     canActivate: [panelModuleGuard],
     data: { panelModule: 'store' },

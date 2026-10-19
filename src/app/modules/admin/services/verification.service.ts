@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiBaseService } from '../../../core/services/api-base.service';
 
-export type VerificationStatus = 'AWAITING_PAYMENT' | 'PENDING' | 'APPROVED' | 'REJECTED';
+export type VerificationStatus = 'AWAITING_PAYMENT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELED';
 
 export interface VerificationDocumentInfo {
   index: number;
@@ -29,6 +29,13 @@ export interface VerificationItem {
   paidAt: string | null;
   /** Hasta cuándo vale la insignia. */
   expiresAt: string | null;
+  /** Aprobada sin pagar: fecha límite para pagar (luego debe enviar otra solicitud). */
+  payBefore?: string | null;
+  /** Plan que eligió el usuario al pagar (meses de la insignia). */
+  planCode?: 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUAL' | 'ANNUAL' | null;
+  planMonths?: number | null;
+  /** Días por defecto para pagar (Tabla maestra); solo en el detalle. */
+  paymentDays?: number;
   termsAcceptedAt: string;
   rejectionReason: string | null;
   reviewedByName: string | null;
@@ -54,6 +61,7 @@ export class VerificationService extends ApiBaseService {
     return this.http.get(`${this.baseUrl}/${this.endpoint}/${id}/documents/${index}`, { responseType: 'blob' });
   }
 
+  /** La fecha límite de pago la pone el backend con los días de Tabla maestra. */
   approve(id: number): Observable<VerificationItem> {
     return this._patch<VerificationItem>(this.endpoint, `${id}/approve`, {}).pipe(map((r) => r.data as VerificationItem));
   }

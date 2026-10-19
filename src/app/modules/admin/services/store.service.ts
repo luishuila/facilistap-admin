@@ -54,6 +54,30 @@ export interface WalletConfig {
   packages: WalletPackage[];
 }
 
+export type WithdrawalStatus = 'PENDING' | 'PAID' | 'REJECTED';
+
+/** Retiro de la billetera de un negocio (lo que ganó con citas pagadas en la app). */
+export interface ProviderWithdrawalItem {
+  id: number;
+  createdAt: string;
+  amount: number;
+  currency: string;
+  method: 'BANK_ACCOUNT' | 'NEQUI' | 'DAVIPLATA';
+  account: {
+    holderName: string; documentType?: string; documentTypeName?: string; documentNumber: string;
+    bankCode?: string; bankName?: string; accountType?: string; accountTypeName?: string; accountNumber?: string; phone?: string;
+  };
+  status: WithdrawalStatus;
+  adminNote: string | null;
+  paymentReference: string | null;
+  reviewedAt: string | null;
+  providerId: number | null;
+  providerName: string;
+  requestedByName: string;
+  requestedByEmail: string | null;
+  reviewedByName: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class StoreAdminService extends ApiBaseService {
   // StoreAdminController (/api/admin/store), modulo store.
@@ -84,6 +108,20 @@ export class StoreAdminService extends ApiBaseService {
 
   deletePackage(id: number): Observable<WalletConfig> {
     return this._delete<WalletConfig>(`${this.endpoint}/wallet-config/packages`, id).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  // ─── Retiros de la billetera de los negocios ───
+
+  withdrawals(status?: WithdrawalStatus | null): Observable<ProviderWithdrawalItem[]> {
+    return this._getAll<ProviderWithdrawalItem>(`${this.endpoint}/withdrawals`, status ? { status } : undefined).pipe(map((r) => r.data ?? []));
+  }
+
+  markWithdrawalPaid(id: number, reference?: string): Observable<ProviderWithdrawalItem> {
+    return this._create<ProviderWithdrawalItem>(`${this.endpoint}/withdrawals/${id}/paid`, { reference }).pipe(map((r) => r.data as ProviderWithdrawalItem));
+  }
+
+  rejectWithdrawal(id: number, note: string): Observable<ProviderWithdrawalItem> {
+    return this._create<ProviderWithdrawalItem>(`${this.endpoint}/withdrawals/${id}/reject`, { note }).pipe(map((r) => r.data as ProviderWithdrawalItem));
   }
 
   /** Marca como liquidados (ya se le pagó al proveedor). */

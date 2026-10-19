@@ -15,10 +15,11 @@ import { VerificationDetailComponent } from './verification-detail.component';
 type Row = VerificationItem & { subject: string; owner: string; amountLabel: string };
 
 const STATUS_MAP = {
-  AWAITING_PAYMENT: { label: 'Pago pendiente', color: '#7c3aed' },
+  AWAITING_PAYMENT: { label: 'Aprobada, falta pago', color: '#7c3aed' },
   PENDING: { label: 'En revisión', color: '#f59e0b' },
   APPROVED: { label: 'Verificado', color: '#0b63f6' },
   REJECTED: { label: 'Rechazado', color: '#ef4444' },
+  CANCELED: { label: 'Cancelada', color: '#64748b' },
 };
 
 @Component({
@@ -33,7 +34,7 @@ const STATUS_MAP = {
           <h1 class="page-title">Verificaciones</h1>
           <p class="page-subtitle">
             Solicitudes de la insignia de verificado (producto aparte de la suscripción; precio y vigencia en Tabla maestra → Verificación de cuentas).
-            Solo se revisan las pagadas. El usuario y cada proveedor se verifican por separado.
+            Primero se revisan los documentos; si se aprueba, el usuario paga y se activa la insignia. El usuario y cada proveedor se verifican por separado.
           </p>
         </div>
       </div>
@@ -43,14 +44,14 @@ const STATUS_MAP = {
           <mat-button-toggle value="PENDING">En revisión</mat-button-toggle>
           <mat-button-toggle value="APPROVED">Verificadas</mat-button-toggle>
           <mat-button-toggle value="REJECTED">Rechazadas</mat-button-toggle>
-          <mat-button-toggle value="AWAITING_PAYMENT">Pago pendiente</mat-button-toggle>
+          <mat-button-toggle value="AWAITING_PAYMENT">Aprobadas sin pagar</mat-button-toggle>
           <mat-button-toggle [value]="null">Todas</mat-button-toggle>
         </mat-button-toggle-group>
         <span class="total">{{ filtered().length }} solicitudes</span>
       </div>
 
       <app-data-table
-        [columns]="columns"
+        [columns]="columns()"
         [data]="pageRows()"
         [totalItems]="filtered().length"
         [pageSize]="pageSize()"
@@ -85,7 +86,7 @@ export class VerificationListComponent implements OnInit {
 
   protected readonly rowActions: RowActionOption[] = [{ action: 'review', label: 'Revisar', icon: 'fact_check' }];
 
-  protected readonly columns: TableColumn[] = [
+  private readonly baseColumns: TableColumn[] = [
     { key: 'id', label: 'ID', type: 'number', width: '70px' },
     { key: 'subject', label: 'Tipo', width: '110px' },
     { key: 'owner', label: 'Cuenta / negocio', subKey: 'userEmail' },
@@ -95,6 +96,14 @@ export class VerificationListComponent implements OnInit {
     { key: 'reviewedByName', label: 'Revisó', width: '160px' },
     { key: 'actions', label: 'Acciones', type: 'actions', width: '80px', align: 'center' },
   ];
+  /** En Rechazadas y Todas se ve el motivo que le llegó al usuario. */
+  protected readonly columns = computed<TableColumn[]>(() => {
+    const st = this.status();
+    if (st !== 'REJECTED' && st !== 'CANCELED' && st !== null) return this.baseColumns;
+    const cols = [...this.baseColumns];
+    cols.splice(cols.length - 1, 0, { key: 'rejectionReason', label: 'Motivo' });
+    return cols;
+  });
 
   protected readonly rows = signal<Row[]>([]);
   protected readonly loading = signal(false);
@@ -137,12 +146,22 @@ export class VerificationListComponent implements OnInit {
             list.map((v) => ({
               ...v,
               subject: v.subjectType === 'PROVIDER' ? 'Proveedor' : 'Usuario',
-              amountLabel: v.amount > 0 ? `${v.currency} ${v.amount.toLocaleString('es-CO')}${v.paidAt ? '' : ' (sin pagar)'}` : 'Gratis',
+              amountLabel: this.amountLabel(v),
               owner: v.subjectType === 'PROVIDER' ? `${v.providerName} (de ${v.userName})` : `${v.userName}${v.username ? ' · @' + v.username : ''}`,
             })),
           ),
         error: (err: Error) => this.snackBar.open(err?.message || 'Error al cargar las verificaciones', 'Cerrar', { duration: 5000 }),
       });
+  }
+
+  /** Pago: plan elegido y valor; en revisión aún no hay precio (el usuario elige plan al aprobarse). */
+  private amountLabel(v: VerificationItem): string {
+    const plan = v.planMonths ? ` · ${planLabel(v.planMonths)}` : '';
+    const deadline = v.payBefore ? ` · pagar antes del ${new Date(v.payBefore).toLocaleDateString('es-CO')}` : '';
+    if (v.status === 'PENDING' && !v.paidAt) return 'Al aprobar, el usuario elige plan';
+    if (v.status === 'AWAITING_PAYMENT' && !v.planCode) return `Plan por elegir${deadline}`;
+    if (v.amount <= 0) return `Gratis${plan}`;
+    return `${v.currency} ${v.amount.toLocaleString('es-CO')}${plan}${v.paidAt ? '' : ' (sin pagar)'}${deadline}`;
   }
 
   protected onPage(e: PageEvent): void {
@@ -163,4 +182,9 @@ export class VerificationListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((changed) => changed && this.load());
   }
+}
+
+/** "1 mes", "3 meses", "1 año". */
+export function planLabel(months: number): string {
+  return months === 12 ? '1 año' : months === 1 ? '1 mes' : `${months} meses`;
 }

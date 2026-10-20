@@ -384,7 +384,7 @@ export class SubscriptionListComponent implements OnInit {
     this.confirmDialog
       .confirm({
         title: 'Cancelar suscripción',
-        message: `La suscripción de ${row.userName} termina ahora y sus empleados quedan inactivos (salvo los que tengan citas pendientes). ¿Continuar?`,
+        message: `La suscripción de ${row.userName} termina ahora y sus empleados quedan inactivos (salvo los que tengan agendas pendientes). ¿Continuar?`,
         confirmText: 'Cancelar suscripción',
         cancelText: 'Volver',
         icon: 'block',

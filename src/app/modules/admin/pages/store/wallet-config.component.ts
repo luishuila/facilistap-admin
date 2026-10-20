@@ -13,7 +13,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, finalize } from 'rxjs';
 
 import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
-import { PackageDiscountType, StoreAdminService, WalletConfig, WalletPackage } from '../../services/store.service';
+import { GatewayCommission, PackageDiscountType, StoreAdminService, WalletConfig, WalletPackage } from '../../services/store.service';
 
 /** Tipo de descuento en el formulario: NONE = sin descuento. */
 type DiscountKind = PackageDiscountType | 'NONE';
@@ -86,6 +86,60 @@ type PackageDraft = WalletPackage & { form: PackageForm };
             </button>
           </div>
           <small class="muted">Ahora: de {{ money(config()?.topUp?.min ?? 0) }} a {{ money(config()?.topUp?.max ?? 0) }}.</small>
+        </section>
+
+        <!-- Comisión por pasarela de pago -->
+        <section class="panel">
+          <div class="panel-head">
+            <mat-icon>percent</mat-icon>
+            <div>
+              <h2>Comisión por pasarela de pago</h2>
+              <p>Lo que se le suma al cliente cuando paga con esa pasarela (carrito y agendas): se ve como "Comisión" antes de pagar. Apagada, no se cobra. Es aparte de la comisión de FacilisTap al negocio. Los medios que acepta cada negocio los activa el negocio.</p>
+            </div>
+          </div>
+          @for (g of gateways; track g.key) {
+            <div class="row commission-row">
+              <mat-slide-toggle [(ngModel)]="commissionForm[g.key].enabled" [disabled]="busy()">
+                <strong>{{ g.label }}</strong>
+              </mat-slide-toggle>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Comisión</mat-label>
+                <input matInput type="number" min="0" max="100" step="0.5" [(ngModel)]="commissionForm[g.key].percent"
+                  [disabled]="busy() || !commissionForm[g.key].enabled" />
+                <span matTextSuffix>&nbsp;%</span>
+              </mat-form-field>
+              <small class="muted">
+                Ahora: {{ config()?.commissions?.[g.key]?.enabled ? (config()?.commissions?.[g.key]?.percent + '%') : 'no se cobra' }}
+              </small>
+            </div>
+          }
+          <div class="row">
+            <button mat-flat-button color="primary" (click)="saveCommissions()" [disabled]="busy()">
+              <mat-icon>save</mat-icon> Guardar comisiones
+            </button>
+          </div>
+        </section>
+
+        <!-- Retiro de la billetera del usuario -->
+        <section class="panel">
+          <div class="panel-head">
+            <mat-icon>account_balance</mat-icon>
+            <div>
+              <h2>Retiro de la billetera del usuario</h2>
+              <p>El usuario puede pedir el retiro del monto que elija de su saldo. Este es el mínimo por retiro; 0 = sin mínimo.</p>
+            </div>
+          </div>
+          <div class="row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Mínimo para retirar</mat-label>
+              <span matTextPrefix>$&nbsp;</span>
+              <input matInput type="number" min="0" [step]="coinValue()" [(ngModel)]="withdrawMin" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" (click)="saveWithdrawMin()" [disabled]="busy()">
+              <mat-icon>save</mat-icon> Guardar mínimo
+            </button>
+          </div>
+          <small class="muted">Ahora: {{ money(config()?.userWithdrawMin ?? 0) }}.</small>
         </section>
 
         <!-- Paquetes -->
@@ -177,6 +231,7 @@ type PackageDraft = WalletPackage & { form: PackageForm };
         mat-icon { color: #f59e0b; margin-top: 2px; }
         h2 { margin: 0; font-size: 17px; font-weight: 700; color: var(--fac-text); }
         p { margin: 2px 0 0; font-size: 13px; color: var(--fac-text-muted); } }
+      .commission-row { margin-bottom: 10px; mat-slide-toggle { min-width: 200px; } }
       .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
         mat-form-field { width: 200px; }
         button[mat-flat-button] { height: 48px; border-radius: 12px; } }
@@ -214,6 +269,15 @@ export class WalletConfigComponent implements OnInit {
 
   protected min: number | null = null;
   protected max: number | null = null;
+  protected withdrawMin: number | null = null;
+  protected readonly gateways = [
+    { key: 'wallet' as const, label: 'Pago con billetera' },
+    { key: 'wompi' as const, label: 'Pago con Wompi' },
+  ];
+  protected commissionForm: Record<'wallet' | 'wompi', GatewayCommission> = {
+    wallet: { enabled: false, percent: 0 },
+    wompi: { enabled: false, percent: 0 },
+  };
   protected newForm: PackageForm = this.emptyForm();
 
   ngOnInit(): void {
@@ -258,6 +322,24 @@ export class WalletConfigComponent implements OnInit {
 
   protected saveTopUp(): void {
     this.run(this.service.updateTopUp(Number(this.min), Number(this.max)), 'Rango de la recarga libre guardado');
+  }
+
+  protected saveCommissions(): void {
+    const f = this.commissionForm;
+    const bad = [f.wallet, f.wompi].some((c) => !(Number(c.percent) >= 0 && Number(c.percent) <= 100));
+    if (bad) {
+      this.snackBar.open('La comisión debe estar entre 0% y 100%.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    const body = {
+      wallet: { enabled: f.wallet.enabled, percent: Number(f.wallet.percent) },
+      wompi: { enabled: f.wompi.enabled, percent: Number(f.wompi.percent) },
+    };
+    this.run(this.service.updateCommissions(body), 'Comisiones guardadas');
+  }
+
+  protected saveWithdrawMin(): void {
+    this.run(this.service.updateUserWithdrawMin(Number(this.withdrawMin)), 'Mínimo de retiro guardado');
   }
 
   protected addPackage(): void {
@@ -312,6 +394,13 @@ export class WalletConfigComponent implements OnInit {
     this.coinValue.set(config.coinValue || 1000);
     this.min = config.topUp?.min ?? null;
     this.max = config.topUp?.max ?? null;
+    this.withdrawMin = config.userWithdrawMin ?? null;
+    if (config.commissions) {
+      this.commissionForm = {
+        wallet: { ...config.commissions.wallet },
+        wompi: { ...config.commissions.wompi },
+      };
+    }
     this.packages.set(
       config.packages.map((p) => ({
         ...p,

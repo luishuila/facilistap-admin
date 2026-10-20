@@ -150,7 +150,6 @@ interface BonusDraft {
               </div>
             </div>
             @if (draft.kind === 'WALLET') {
-              <p class="hint">En la billetera el saldo va en monedas: el valor se ajusta a monedas enteras.</p>
             }
             }
           </section>
@@ -478,7 +477,7 @@ export class BonusAdminComponent implements OnInit {
         title: 'Eliminar bono',
         message: b.status === 'CREDITED'
           ? `"${b.title}" ya se aplicó: eliminarlo no quita el saldo ni la suscripción que ya recibió.`
-          : `"${b.title}" (${b.code}) dejará de servir. Las citas que ya lo usaron conservan su descuento.`,
+          : `"${b.title}" (${b.code}) dejará de servir. Las agendas que ya lo usaron conservan su descuento.`,
         confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         icon: 'delete',
@@ -517,7 +516,7 @@ export class BonusAdminComponent implements OnInit {
 
   protected kindHint(): string {
     if (this.draft.kind === 'SUBSCRIPTION') return 'Regala un plan de suscripción completo (1 mes, 6 meses o 1 año), sin pagar.';
-    if (this.draft.kind === 'WALLET') return 'Sirve en toda la app: va a la Billetera del usuario y paga citas de cualquier negocio.';
+    if (this.draft.kind === 'WALLET') return 'Sirve en toda la app: va a la Billetera del usuario y paga agendas de cualquier negocio.';
     if (this.draft.kind === 'VERIFICATION') {
       return 'Paga la verificación de su usuario o de su negocio. Si cubre todo el precio, la verificación sale gratis y pasa directo a revisión.';
     }

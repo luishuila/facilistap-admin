@@ -62,7 +62,7 @@ import {
           </mat-form-field>
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="span-2">
             <mat-label>Descripción (opcional)</mat-label>
-            <input matInput formControlName="description" placeholder="Atiende la recepción y gestiona las citas" autocomplete="off" />
+            <input matInput formControlName="description" placeholder="Atiende la recepción y gestiona las agendas" autocomplete="off" />
           </mat-form-field>
         </div>
 
@@ -76,14 +76,14 @@ import {
           <div class="row">
             <span>
               <strong>Atiende servicios</strong>
-              <small>Aparece para reservar y recibe citas.</small>
+              <small>Aparece para reservar y recibe agendas.</small>
             </span>
             <mat-slide-toggle color="primary" formControlName="attendsServices" />
           </div>
           <div class="row">
             <span>
               <strong>Gestiona la agenda</strong>
-              <small>Maneja las citas de la empresa (como un asistente).</small>
+              <small>Maneja las agendas de la empresa (como un asistente).</small>
             </span>
             <mat-slide-toggle color="primary" formControlName="managesAgenda" />
           </div>

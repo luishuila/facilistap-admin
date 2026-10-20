@@ -199,7 +199,7 @@ export class EmployeeListComponent implements OnInit {
         title: activate ? 'Activar empleado' : 'Desactivar empleado',
         message: activate
           ? `${row.userFullName || 'El empleado'} volverá a estar disponible en la app.`
-          : `${row.userFullName || 'El empleado'} no se ofrecerá para reservar citas (sus datos y citas no se borran). Podrá activarlo de nuevo cuando quiera.`,
+          : `${row.userFullName || 'El empleado'} no se ofrecerá para reservar (sus datos y agendas no se borran). Podrá activarlo de nuevo cuando quiera.`,
         confirmText: activate ? 'Activar' : 'Desactivar',
         cancelText: 'Cancelar',
         icon: activate ? 'toggle_on' : 'toggle_off',

@@ -44,7 +44,7 @@ type Row = AppointmentPaymentItem & { methodLabel: string; amountLabel: string; 
         <div>
           <h1 class="page-title">Tienda y liquidaciones</h1>
           <p class="page-subtitle">
-            Citas pagadas por los clientes en la Tienda (con Wompi o monedas). Liquide a cada proveedor lo que le corresponde
+            Agendas pagadas por los clientes en la Tienda (con Wompi o monedas). Liquide a cada proveedor lo que le corresponde
             (monto menos la comisión configurada en Tabla maestra → Tienda) y márquelo como pagado.
           </p>
         </div>
@@ -203,7 +203,7 @@ export class StorePaymentsComponent implements OnInit {
             list.map((p) => ({
               ...p,
               providerLabel: `${p.providerName} → ${this.money(p.providerAmount)}`,
-              methodLabel: p.method === 'COINS' ? `Monedas (${p.coins})` : 'Wompi',
+              methodLabel: p.method === 'COINS' ? 'Billetera' : 'Wompi',
               amountLabel: this.money(p.amount),
               commissionLabel: `${this.money(p.commissionAmount)} (${p.commissionPercent}%)`,
               state: p.settledAt ? 'DONE' : 'PENDING',

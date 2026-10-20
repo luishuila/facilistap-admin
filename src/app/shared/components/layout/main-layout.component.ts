@@ -676,7 +676,7 @@ export class MainLayoutComponent implements OnInit {
         { label: 'Suscripciones', icon: 'workspace_premium', route: '/admin/suscripciones', module: 'subscriptions' },
         { label: 'Tienda y liquidaciones', icon: 'storefront', route: '/admin/tienda', module: 'store' },
         { label: 'Billetera', icon: 'account_balance_wallet', route: '/admin/billetera', module: 'store' },
-        { label: 'Retiros de negocios', icon: 'savings', route: '/admin/retiros', module: 'store' },
+        { label: 'Retiros', icon: 'savings', route: '/admin/retiros', module: 'store' },
         { label: 'Promociones', icon: 'local_offer', route: '/admin/promociones', module: 'promotions' },
       ],
     },

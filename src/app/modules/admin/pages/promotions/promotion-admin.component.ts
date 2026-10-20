@@ -97,7 +97,7 @@ const MAX_USERS = 500;
         <div>
           <h1 class="page-title">Promociones</h1>
           <p class="page-subtitle">
-            Descuentos en la Tienda (planes y verificación) o en las citas de un negocio, y bonos de regalo (saldo en billetera o de un negocio), para todos o para usuarios específicos.
+            Descuentos en la Tienda (planes y verificación) o en las agendas de un negocio, y bonos de regalo (saldo en billetera o de un negocio), para todos o para usuarios específicos.
             Se aplican solos y a los usuarios elegidos les llega una notificación.
           </p>
         </div>
@@ -110,7 +110,7 @@ const MAX_USERS = 500;
 
       <mat-tab-group [selectedIndex]="tabIndex()" (selectedIndexChange)="setTab(tabs[$event])" animationDuration="0ms">
         <mat-tab><ng-template mat-tab-label><mat-icon class="tab-icon">storefront</mat-icon> Tienda (planes y verificación)</ng-template></mat-tab>
-        <mat-tab><ng-template mat-tab-label><mat-icon class="tab-icon">event_available</mat-icon> Citas de negocios</ng-template></mat-tab>
+        <mat-tab><ng-template mat-tab-label><mat-icon class="tab-icon">event_available</mat-icon> Agendas de negocios</ng-template></mat-tab>
         <mat-tab><ng-template mat-tab-label><mat-icon class="tab-icon">redeem</mat-icon> Bonos</ng-template></mat-tab>
       </mat-tab-group>
 
@@ -125,10 +125,10 @@ const MAX_USERS = 500;
           <div class="card form">
             <h3 class="card-title">
               <mat-icon>{{ tab() === 'subscription' ? 'workspace_premium' : 'event_available' }}</mat-icon>
-              {{ draft.id ? 'Editar promoción' : (tab() === 'subscription' ? 'Nueva promoción de la Tienda' : 'Nueva promoción de citas') }}
+              {{ draft.id ? 'Editar promoción' : (tab() === 'subscription' ? 'Nueva promoción de la Tienda' : 'Nueva promoción de agendas') }}
             </h3>
 
-            <!-- Citas: primero el negocio -->
+            <!-- Agendas: primero el negocio -->
             @if (tab() === 'business') {
               <section class="step">
                 <h4><span class="num">1</span> Negocio</h4>
@@ -204,7 +204,7 @@ const MAX_USERS = 500;
                 </div>
               </section>
             } @else {
-              <!-- Citas: qué servicios -->
+              <!-- Agendas: qué servicios -->
               <section class="step">
                 <h4><span class="num">{{ n(3) }}</span> ¿En qué servicios?</h4>
                 <mat-button-toggle-group [(ngModel)]="draft.scope">
@@ -268,7 +268,7 @@ const MAX_USERS = 500;
                 </mat-button-toggle-group>
                 @if (draft.limited) {
                   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="value-field">
-                    <mat-label>{{ tab() === 'subscription' ? 'Usuarios' : 'Citas' }}</mat-label>
+                    <mat-label>{{ tab() === 'subscription' ? 'Usuarios' : 'Agendas' }}</mat-label>
                     <input matInput type="number" min="1" [(ngModel)]="draft.maxUses" />
                   </mat-form-field>
                 }
@@ -281,7 +281,7 @@ const MAX_USERS = 500;
                 </div>
               }
 
-              <!-- Veces por persona: al usarla (cita agendada o pago aprobado) se gasta; al llegar al límite ya no le aplica -->
+              <!-- Veces por persona: al usarla (agenda creada o pago aprobado) se gasta; al llegar al límite ya no le aplica -->
               <div class="per-user">
                 <span class="per-user-label"><mat-icon>person</mat-icon> ¿Cuántas veces puede usarla cada persona?</span>
                 <div class="chips">
@@ -297,7 +297,7 @@ const MAX_USERS = 500;
                 <p class="hint">
                   {{ tab() === 'subscription'
                     ? 'Cada pago aprobado con la promoción gasta un uso.'
-                    : 'Cada cita agendada con la promoción gasta un uso (si la cancela, lo recupera).' }}
+                    : 'Cada agenda creada con la promoción gasta un uso (si la cancela, lo recupera).' }}
                   Al llegar al límite, ya no le aplica.
                 </p>
               </div>
@@ -425,7 +425,7 @@ const MAX_USERS = 500;
         </mat-form-field>
         @if (bizLoading()) { <div class="center"><mat-spinner diameter="32"></mat-spinner></div> }
         @else if (!businessList().length) {
-          <div class="empty card"><mat-icon>event_available</mat-icon><p>No hay promociones de citas.</p></div>
+          <div class="empty card"><mat-icon>event_available</mat-icon><p>No hay promociones de agendas.</p></div>
         } @else {
           <div class="list">
             @for (p of businessList(); track p.id) {
@@ -441,7 +441,7 @@ const MAX_USERS = 500;
                 </div>
                 <div class="promo-side">
                   <span class="status">{{ statusLabel(p.status) }}</span>
-                  <span class="uses">{{ p.usedCount }}{{ p.maxUses ? ' / ' + p.maxUses : '' }} citas</span>
+                  <span class="uses">{{ p.usedCount }}{{ p.maxUses ? ' / ' + p.maxUses : '' }} agendas</span>
                   <span class="uses">{{ p.maxUsesPerUser == null ? 'Sin límite por persona' : p.maxUsesPerUser + (p.maxUsesPerUser === 1 ? ' vez' : ' veces') + ' por persona' }}</span>
                   <div class="row-actions">
                     <button mat-icon-button matTooltip="Editar" (click)="editBusiness(p)"><mat-icon>edit</mat-icon></button>

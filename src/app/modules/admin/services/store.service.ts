@@ -45,18 +45,33 @@ export interface WalletPackageInput {
   isActive?: boolean;
 }
 
+/** Comisión de una pasarela: si se cobra y cuánto (%). */
+export interface GatewayCommission {
+  enabled: boolean;
+  percent: number;
+}
+
 /** Configuración de la billetera (Tienda → Billetera de la app). */
 export interface WalletConfig {
   currency: string;
   coinValue: number;
   /** Recarga libre ("Otro valor"). */
   topUp: { min: number; max: number };
+  /** Mínimo (en dinero) para que un usuario pida el retiro de su billetera. */
+  userWithdrawMin: number;
+  /** Comisión por pasarela de pago que se le suma al cliente (pagos con billetera o con Wompi). */
+  commissions: { wallet: GatewayCommission; wompi: GatewayCommission };
   packages: WalletPackage[];
 }
 
 export type WithdrawalStatus = 'PENDING' | 'PAID' | 'REJECTED';
+/** De quién es el retiro: un negocio (lo que ganó con citas) o un usuario (de su billetera). */
+export type WithdrawalKind = 'provider' | 'user';
 
-/** Retiro de la billetera de un negocio (lo que ganó con citas pagadas en la app). */
+/**
+ * Retiro de la billetera de un negocio (lo que ganó con citas pagadas en la app) o de un usuario
+ * (el monto que eligió de su saldo). En los de usuario no hay negocio: providerId es null.
+ */
 export interface ProviderWithdrawalItem {
   id: number;
   createdAt: string;
@@ -94,6 +109,14 @@ export class StoreAdminService extends ApiBaseService {
     return this._getById<WalletConfig>(this.endpoint, 'wallet-config').pipe(map((r) => r.data as WalletConfig));
   }
 
+  updateCommissions(body: Partial<Record<'wallet' | 'wompi', GatewayCommission>>): Observable<WalletConfig> {
+    return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'commissions', body).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  updateUserWithdrawMin(min: number): Observable<WalletConfig> {
+    return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'user-withdraw-min', { min }).pipe(map((r) => r.data as WalletConfig));
+  }
+
   updateTopUp(min: number, max: number): Observable<WalletConfig> {
     return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'top-up', { min, max }).pipe(map((r) => r.data as WalletConfig));
   }
@@ -110,18 +133,24 @@ export class StoreAdminService extends ApiBaseService {
     return this._delete<WalletConfig>(`${this.endpoint}/wallet-config/packages`, id).pipe(map((r) => r.data as WalletConfig));
   }
 
-  // ─── Retiros de la billetera de los negocios ───
+  // ─── Retiros de la billetera de los negocios y de los usuarios ───
 
-  withdrawals(status?: WithdrawalStatus | null): Observable<ProviderWithdrawalItem[]> {
-    return this._getAll<ProviderWithdrawalItem>(`${this.endpoint}/withdrawals`, status ? { status } : undefined).pipe(map((r) => r.data ?? []));
+  private withdrawalsPath(kind: WithdrawalKind): string {
+    return `${this.endpoint}/${kind === 'user' ? 'user-withdrawals' : 'withdrawals'}`;
   }
 
-  markWithdrawalPaid(id: number, reference?: string): Observable<ProviderWithdrawalItem> {
-    return this._create<ProviderWithdrawalItem>(`${this.endpoint}/withdrawals/${id}/paid`, { reference }).pipe(map((r) => r.data as ProviderWithdrawalItem));
+  withdrawals(status?: WithdrawalStatus | null, kind: WithdrawalKind = 'provider'): Observable<ProviderWithdrawalItem[]> {
+    return this._getAll<ProviderWithdrawalItem>(this.withdrawalsPath(kind), status ? { status } : undefined).pipe(
+      map((r) => (r.data ?? []).map((w) => (kind === 'user' ? { ...w, providerId: null, providerName: 'Billetera personal' } : w))),
+    );
   }
 
-  rejectWithdrawal(id: number, note: string): Observable<ProviderWithdrawalItem> {
-    return this._create<ProviderWithdrawalItem>(`${this.endpoint}/withdrawals/${id}/reject`, { note }).pipe(map((r) => r.data as ProviderWithdrawalItem));
+  markWithdrawalPaid(id: number, reference?: string, kind: WithdrawalKind = 'provider'): Observable<ProviderWithdrawalItem> {
+    return this._create<ProviderWithdrawalItem>(`${this.withdrawalsPath(kind)}/${id}/paid`, { reference }).pipe(map((r) => r.data as ProviderWithdrawalItem));
+  }
+
+  rejectWithdrawal(id: number, note: string, kind: WithdrawalKind = 'provider'): Observable<ProviderWithdrawalItem> {
+    return this._create<ProviderWithdrawalItem>(`${this.withdrawalsPath(kind)}/${id}/reject`, { note }).pipe(map((r) => r.data as ProviderWithdrawalItem));
   }
 
   /** Marca como liquidados (ya se le pagó al proveedor). */

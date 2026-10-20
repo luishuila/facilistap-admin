@@ -6,11 +6,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { ProviderWithdrawalItem } from '../../services/store.service';
+import { ProviderWithdrawalItem, WithdrawalKind } from '../../services/store.service';
 
 export interface WithdrawalDialogData {
   mode: 'pay' | 'reject';
   item: ProviderWithdrawalItem;
+  /** Sin él, de un negocio. */
+  kind?: WithdrawalKind;
 }
 
 /**
@@ -51,13 +53,13 @@ export interface WithdrawalDialogData {
         <mat-form-field appearance="outline" class="full">
           <mat-label>Comprobante o referencia de la transferencia (opcional)</mat-label>
           <input matInput [(ngModel)]="text" maxlength="120" />
-          <mat-hint>Al marcarlo pagado, sus citas quedan liquidadas y se le avisa al negocio.</mat-hint>
+          <mat-hint>{{ isUser ? 'Al marcarlo pagado se le avisa al usuario.' : 'Al marcarlo pagado, sus agendas quedan liquidadas y se le avisa al negocio.' }}</mat-hint>
         </mat-form-field>
       } @else {
         <mat-form-field appearance="outline" class="full">
-          <mat-label>Motivo del rechazo (lo verá el negocio)</mat-label>
+          <mat-label>Motivo del rechazo (lo verá {{ isUser ? 'el usuario' : 'el negocio' }})</mat-label>
           <textarea matInput rows="3" [(ngModel)]="text" maxlength="300" placeholder="Ej: El número de cuenta no coincide con el titular."></textarea>
-          <mat-hint>Obligatorio (mínimo 5 caracteres). El saldo vuelve a quedar disponible para pedirlo de nuevo.</mat-hint>
+          <mat-hint>Obligatorio (mínimo 5 caracteres). {{ isUser ? 'Las monedas vuelven a su billetera' : 'El saldo vuelve a quedar disponible' }} para pedirlo de nuevo.</mat-hint>
         </mat-form-field>
       }
 
@@ -99,6 +101,10 @@ export class WithdrawalDialogComponent {
   protected readonly data: WithdrawalDialogData = inject(MAT_DIALOG_DATA);
   protected readonly ref = inject(MatDialogRef<WithdrawalDialogComponent, { reference?: string; note?: string }>);
   protected text = '';
+
+  protected get isUser(): boolean {
+    return this.data.kind === 'user';
+  }
 
   protected get methodLabel(): string {
     return this.data.item.method === 'BANK_ACCOUNT' ? 'Cuenta bancaria' : this.data.item.method === 'NEQUI' ? 'Nequi' : 'Daviplata';

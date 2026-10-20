@@ -8,7 +8,7 @@ import { finalize } from 'rxjs';
 
 import { DataTableComponent } from '../../../../shared/components/data-table/data-table.component';
 import { PageEvent, RowAction, RowActionOption, TableColumn } from '../../../../shared/components/data-table/data-table.types';
-import { ProviderWithdrawalItem, StoreAdminService, WithdrawalStatus } from '../../services/store.service';
+import { ProviderWithdrawalItem, StoreAdminService, WithdrawalKind, WithdrawalStatus } from '../../services/store.service';
 import { WithdrawalDialogComponent, WithdrawalDialogData } from './withdrawal-dialog.component';
 
 type Row = ProviderWithdrawalItem & { amountLabel: string; methodLabel: string };
@@ -20,8 +20,11 @@ const STATUS_MAP = {
 };
 
 /**
- * Retiros de la billetera de los negocios: el dueño pide el retiro de lo que ganó con las citas
- * pagadas en la app (ya sin comisión ni reembolsos). Aquí se transfiere y se marca pagado, o se rechaza.
+ * Retiros de billetera, en dos pestañas:
+ *  - Negocios: el dueño pide el retiro de lo que ganó con las citas pagadas en la app (ya sin
+ *    comisión ni reembolsos).
+ *  - Usuarios: el usuario retira el monto que elija de su saldo (desde el mínimo configurado).
+ * Aquí se transfiere y se marca pagado, o se rechaza.
  */
 @Component({
   selector: 'app-provider-withdrawals',
@@ -31,11 +34,18 @@ const STATUS_MAP = {
   template: `
     <div class="list-page">
       <div class="page-header">
-        <h1 class="page-title">Retiros de negocios</h1>
-        <p class="page-subtitle">
-          Lo que los negocios piden retirar de su billetera (citas pagadas en la app, ya sin la comisión de FacilisTap ni los
-          reembolsos). Transfiera a la cuenta indicada y márquelo como pagado; al hacerlo, sus citas quedan liquidadas.
-        </p>
+        <h1 class="page-title">Retiros</h1>
+        @if (kind() === 'provider') {
+          <p class="page-subtitle">
+            Lo que los negocios piden retirar de su billetera (agendas pagadas en la app, ya sin la comisión de FacilisTap ni los
+            reembolsos). Transfiera a la cuenta indicada y márquelo como pagado; al hacerlo, sus agendas quedan liquidadas.
+          </p>
+        } @else {
+          <p class="page-subtitle">
+            Lo que los usuarios piden retirar de su billetera (el monto que eligieron de su saldo). Las monedas ya salieron de su
+            billetera; transfiera y márquelo como pagado, o recházelo y vuelven a su billetera.
+          </p>
+        }
       </div>
 
       <div class="cards">
@@ -44,6 +54,10 @@ const STATUS_MAP = {
       </div>
 
       <div class="filters">
+        <mat-button-toggle-group [value]="kind()" (change)="setKind($event.value)" hideSingleSelectionIndicator>
+          <mat-button-toggle value="provider">Negocios</mat-button-toggle>
+          <mat-button-toggle value="user">Usuarios</mat-button-toggle>
+        </mat-button-toggle-group>
         <mat-button-toggle-group [value]="status()" (change)="setStatus($event.value)" hideSingleSelectionIndicator>
           <mat-button-toggle value="PENDING">Por pagar</mat-button-toggle>
           <mat-button-toggle value="PAID">Pagados</mat-button-toggle>
@@ -59,7 +73,7 @@ const STATUS_MAP = {
         [pageSize]="pageSize()"
         [loading]="loading()"
         [showSearch]="true"
-        [searchPlaceholder]="'Buscar por negocio o titular...'"
+        [searchPlaceholder]="kind() === 'user' ? 'Buscar por usuario o titular...' : 'Buscar por negocio o titular...'"
         [showExport]="false"
         [showAddButton]="false"
         [rowActions]="rowActions"
@@ -99,7 +113,7 @@ export class ProviderWithdrawalsComponent implements OnInit {
 
   protected readonly columns: TableColumn[] = [
     { key: 'createdAt', label: 'Solicitado', type: 'date', format: 'dd/MM/yyyy HH:mm', width: '150px' },
-    { key: 'providerName', label: 'Negocio', subKey: 'requestedByName' },
+    { key: 'providerName', label: 'De', subKey: 'requestedByName' },
     { key: 'amountLabel', label: 'Monto', width: '130px' },
     { key: 'methodLabel', label: 'A dónde', subKey: 'accountLabel' },
     { key: 'status', label: 'Estado', type: 'status', width: '120px', align: 'center', statusMap: STATUS_MAP },
@@ -110,6 +124,7 @@ export class ProviderWithdrawalsComponent implements OnInit {
   protected readonly rows = signal<Row[]>([]);
   protected readonly loading = signal(false);
   protected readonly status = signal<WithdrawalStatus | null>('PENDING');
+  protected readonly kind = signal<WithdrawalKind>('provider');
   protected readonly search = signal('');
   protected readonly page = signal(0);
   protected readonly pageSize = signal(10);
@@ -137,6 +152,12 @@ export class ProviderWithdrawalsComponent implements OnInit {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v || 0);
   }
 
+  protected setKind(v: WithdrawalKind): void {
+    this.kind.set(v);
+    this.page.set(0);
+    this.load();
+  }
+
   protected setStatus(v: WithdrawalStatus | null): void {
     this.status.set(v);
     this.page.set(0);
@@ -146,7 +167,7 @@ export class ProviderWithdrawalsComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.service
-      .withdrawals(this.status())
+      .withdrawals(this.status(), this.kind())
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (list) =>
@@ -173,20 +194,24 @@ export class ProviderWithdrawalsComponent implements OnInit {
       return;
     }
     const mode = e.action === 'reject' ? 'reject' : 'pay';
+    const kind = this.kind();
     this.dialog
       .open<WithdrawalDialogComponent, WithdrawalDialogData, { reference?: string; note?: string }>(WithdrawalDialogComponent, {
         width: '520px',
         maxWidth: '96vw',
         autoFocus: false,
-        data: { mode, item: e.row },
+        data: { mode, item: e.row, kind },
       })
       .afterClosed()
       .subscribe((r) => {
         if (!r) return;
-        const req$ = mode === 'pay' ? this.service.markWithdrawalPaid(e.row.id, r.reference) : this.service.rejectWithdrawal(e.row.id, r.note ?? '');
+        const req$ = mode === 'pay'
+          ? this.service.markWithdrawalPaid(e.row.id, r.reference, kind)
+          : this.service.rejectWithdrawal(e.row.id, r.note ?? '', kind);
+        const who = kind === 'user' ? 'al usuario' : 'al negocio';
         req$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
-            this.snackBar.open(mode === 'pay' ? 'Retiro marcado como pagado; se avisó al negocio' : 'Retiro rechazado; se avisó al negocio', 'Cerrar', { duration: 4000 });
+            this.snackBar.open(mode === 'pay' ? `Retiro marcado como pagado; se avisó ${who}` : `Retiro rechazado; se avisó ${who}`, 'Cerrar', { duration: 4000 });
             this.load();
           },
           error: (err: Error) => this.snackBar.open(err?.message || 'No se pudo completar la acción', 'Cerrar', { duration: 5000 }),

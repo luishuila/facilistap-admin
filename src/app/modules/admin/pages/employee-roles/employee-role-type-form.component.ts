@@ -181,6 +181,8 @@ export class EmployeeRoleTypeFormComponent implements OnInit {
       replyMessages: [this.data?.permissions?.replyMessages ?? true],
       editProfile: [this.data?.permissions?.editProfile ?? false],
       publishPosts: [this.data?.permissions?.publishPosts ?? false],
+      manageRefunds: [this.data?.permissions?.manageRefunds ?? false],
+      manageServices: [this.data?.permissions?.manageServices ?? false],
     }),
   });
 
@@ -217,6 +219,8 @@ export class EmployeeRoleTypeFormComponent implements OnInit {
         replyMessages: !!v.perms.replyMessages,
         editProfile: !!v.perms.editProfile,
         publishPosts: !!v.perms.publishPosts,
+        manageRefunds: !!v.perms.manageRefunds,
+        manageServices: !!v.perms.manageServices,
       },
     };
     if (!this.data?.isSystem) {

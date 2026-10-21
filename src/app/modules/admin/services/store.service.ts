@@ -59,6 +59,10 @@ export interface WalletConfig {
   topUp: { min: number; max: number };
   /** Mínimo (en dinero) para que un usuario pida el retiro de su billetera. */
   userWithdrawMin: number;
+  /** Días después de la cita en que el negocio puede reembolsar una cita finalizada (0 = no se puede). */
+  refundWindowDays: number;
+  /** Minutos desde que se finaliza la cita hasta que el negocio la puede retirar (0 = de una vez). */
+  withdrawHoldMinutes: number;
   /** Comisión por pasarela de pago que se le suma al cliente (pagos con billetera o con Wompi). */
   commissions: { wallet: GatewayCommission; wompi: GatewayCommission };
   packages: WalletPackage[];
@@ -115,6 +119,14 @@ export class StoreAdminService extends ApiBaseService {
 
   updateUserWithdrawMin(min: number): Observable<WalletConfig> {
     return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'user-withdraw-min', { min }).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  updateRefundWindow(days: number): Observable<WalletConfig> {
+    return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'refund-window', { days }).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  updateWithdrawHold(minutes: number): Observable<WalletConfig> {
+    return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'withdraw-hold', { minutes }).pipe(map((r) => r.data as WalletConfig));
   }
 
   updateTopUp(min: number, max: number): Observable<WalletConfig> {

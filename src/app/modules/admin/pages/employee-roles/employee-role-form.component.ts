@@ -27,7 +27,7 @@ export interface EmployeeRoleFormData {
 }
 
 /** Mismos valores de inicio que el backend para un asistente nuevo. */
-const DEFAULT_PERMISSIONS: AssistantPermissions = { replyMessages: true, editProfile: false, publishPosts: false };
+const DEFAULT_PERMISSIONS: AssistantPermissions = { replyMessages: true, editProfile: false, publishPosts: false, manageRefunds: false, manageServices: false };
 /** Opcion "Personalizado": marcar Empleado/Asistente y permisos a mano. */
 const CUSTOM = 'custom';
 

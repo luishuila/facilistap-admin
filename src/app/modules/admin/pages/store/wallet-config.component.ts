@@ -142,6 +142,48 @@ type PackageDraft = WalletPackage & { form: PackageForm };
           <small class="muted">Ahora: {{ money(config()?.userWithdrawMin ?? 0) }}.</small>
         </section>
 
+        <!-- Espera para retirar (billetera del negocio) -->
+        <section class="panel">
+          <div class="panel-head">
+            <mat-icon>hourglass_top</mat-icon>
+            <div>
+              <h2>Espera para retirar (billetera del negocio)</h2>
+              <p>Minutos desde que se finaliza la cita hasta que su pago pasa a "Disponible" para retirar (p. ej. 5). 0 = apenas se finaliza. Un pago con una solicitud de reembolso pendiente no se puede retirar hasta que el dueño decida.</p>
+            </div>
+          </div>
+          <div class="row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Minutos de espera</mat-label>
+              <input matInput type="number" min="0" max="43200" step="1" [(ngModel)]="holdMinutes" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" (click)="saveHoldMinutes()" [disabled]="busy()">
+              <mat-icon>save</mat-icon> Guardar minutos
+            </button>
+          </div>
+          <small class="muted">Ahora: {{ (config()?.withdrawHoldMinutes ?? 0) === 0 ? 'apenas se finaliza la cita' : (config()?.withdrawHoldMinutes + ' minutos después de finalizar') }}.</small>
+        </section>
+
+        <!-- Reembolso de citas finalizadas (lo hace el negocio) -->
+        <section class="panel">
+          <div class="panel-head">
+            <mat-icon>undo</mat-icon>
+            <div>
+              <h2>Reembolso de citas finalizadas</h2>
+              <p>El empleado, el asistente o el dueño pueden pedir el reembolso (total o parcial, con motivo) de una cita pagada en la app y ya finalizada, hasta estos días después de la cita; el dueño lo aprueba en la app. 0 = no se puede.</p>
+            </div>
+          </div>
+          <div class="row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Días para reembolsar</mat-label>
+              <input matInput type="number" min="0" max="365" step="1" [(ngModel)]="refundDays" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" (click)="saveRefundDays()" [disabled]="busy()">
+              <mat-icon>save</mat-icon> Guardar días
+            </button>
+          </div>
+          <small class="muted">Ahora: {{ config()?.refundWindowDays ?? 7 }} días después de la cita.</small>
+        </section>
+
         <!-- Paquetes -->
         <section class="panel">
           <div class="panel-head">
@@ -270,6 +312,10 @@ export class WalletConfigComponent implements OnInit {
   protected min: number | null = null;
   protected max: number | null = null;
   protected withdrawMin: number | null = null;
+  /** Días después de la cita para reembolsar una cita finalizada. */
+  protected refundDays: number | null = 7;
+  /** Minutos desde que se finaliza la cita hasta que se puede retirar (0 = de una vez). */
+  protected holdMinutes: number | null = 0;
   protected readonly gateways = [
     { key: 'wallet' as const, label: 'Pago con billetera' },
     { key: 'wompi' as const, label: 'Pago con Wompi' },
@@ -338,6 +384,24 @@ export class WalletConfigComponent implements OnInit {
     this.run(this.service.updateCommissions(body), 'Comisiones guardadas');
   }
 
+  protected saveHoldMinutes(): void {
+    const minutes = Number(this.holdMinutes);
+    if (!Number.isInteger(minutes) || minutes < 0 || minutes > 43200) {
+      this.snackBar.open('Los minutos deben ser un número entero entre 0 y 43.200 (30 días).', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    this.run(this.service.updateWithdrawHold(minutes), 'Minutos de espera guardados');
+  }
+
+  protected saveRefundDays(): void {
+    const days = Number(this.refundDays);
+    if (!Number.isInteger(days) || days < 0 || days > 365) {
+      this.snackBar.open('Los días deben ser un número entero entre 0 y 365.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    this.run(this.service.updateRefundWindow(days), 'Días para reembolsar guardados');
+  }
+
   protected saveWithdrawMin(): void {
     this.run(this.service.updateUserWithdrawMin(Number(this.withdrawMin)), 'Mínimo de retiro guardado');
   }
@@ -395,6 +459,8 @@ export class WalletConfigComponent implements OnInit {
     this.min = config.topUp?.min ?? null;
     this.max = config.topUp?.max ?? null;
     this.withdrawMin = config.userWithdrawMin ?? null;
+    this.refundDays = config.refundWindowDays ?? 7;
+    this.holdMinutes = config.withdrawHoldMinutes ?? 0;
     if (config.commissions) {
       this.commissionForm = {
         wallet: { ...config.commissions.wallet },

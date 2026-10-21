@@ -4,7 +4,7 @@ import { ApiBaseService } from '../../../core/services/api-base.service';
 import { ApiResponse } from '../../../core/models/api-response.interface';
 
 export type EmployeeRoleCode = 'EMPLOYEE' | 'ASSISTANT';
-export type AssistantPermissionKey = 'replyMessages' | 'editProfile' | 'publishPosts';
+export type AssistantPermissionKey = 'replyMessages' | 'editProfile' | 'publishPosts' | 'manageRefunds' | 'manageServices';
 export type AssistantPermissions = Record<AssistantPermissionKey, boolean>;
 
 /** Persona en una empresa con sus roles (employee_roles) y permisos de asistente. */

@@ -1,0 +1,105 @@
+<div class="branches-dialog">
+  <div class="dialog-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <mat-icon>storefront</mat-icon>
+      </div>
+      <div class="header-text">
+        <h2 class="dialog-title">Sedes de {{ data.provider.name }}</h2>
+        <p class="dialog-subtitle">Una sede bloqueada no la ven los clientes y el dueño no puede reactivarla</p>
+      </div>
+    </div>
+    <button mat-icon-button class="close-btn" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-body">
+    @if (loading()) {
+      <div class="state">
+        <mat-spinner diameter="32" strokeWidth="3"></mat-spinner>
+      </div>
+    } @else if (branches().length === 0) {
+      <div class="state">
+        <mat-icon>store</mat-icon>
+        <span>Este proveedor no tiene sedes</span>
+      </div>
+    } @else {
+      @for (branch of branches(); track branch.id) {
+        <div class="branch-card" [class.blocked]="branch.isBlocked">
+          <div class="branch-top">
+            <div class="branch-info">
+              <div class="branch-name">
+                {{ branch.name }}
+                @if (branch.isMain) {
+                  <span class="chip main">Principal</span>
+                }
+                @if (branch.isBlocked) {
+                  <span class="chip danger">Bloqueada</span>
+                } @else if (branch.isActive) {
+                  <span class="chip success">Activa</span>
+                } @else {
+                  <span class="chip muted">Inactiva</span>
+                }
+              </div>
+              <div class="branch-meta">
+                <mat-icon>place</mat-icon>
+                <span>
+                  {{ branch.address?.fullAddress || 'Sin dirección' }}
+                  @if (branch.address?.cityName) {
+                    · {{ branch.address?.cityName }}
+                  }
+                </span>
+              </div>
+              <div class="branch-meta">
+                <mat-icon>group</mat-icon>
+                <span>{{ branch.employeesCount }} empleados</span>
+              </div>
+              @if (branch.isBlocked) {
+                <div class="blocked-reason">
+                  <mat-icon>info</mat-icon>
+                  <span>{{ branch.blockedReason }} · {{ branch.blockedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              }
+            </div>
+
+            @if (!branch.isMain && blockingId() !== branch.id) {
+              @if (branch.isBlocked) {
+                <button mat-stroked-button class="action-btn unblock" [disabled]="savingId() === branch.id" (click)="unblock(branch)">
+                  <mat-icon>lock_open</mat-icon> Desbloquear
+                </button>
+              } @else {
+                <button mat-stroked-button class="action-btn block" [disabled]="savingId() === branch.id" (click)="startBlock(branch)">
+                  <mat-icon>block</mat-icon> Bloquear
+                </button>
+              }
+            }
+          </div>
+
+          @if (blockingId() === branch.id) {
+            <div class="block-form">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Motivo del bloqueo</mat-label>
+                <textarea matInput [formControl]="reason" rows="2" maxlength="300"
+                  placeholder="El dueño verá este motivo"></textarea>
+                @if (reason.touched && reason.invalid) {
+                  <mat-error>Escriba el motivo (mínimo 5 caracteres)</mat-error>
+                }
+              </mat-form-field>
+              <div class="block-actions">
+                <button mat-button (click)="cancelBlock()">Cancelar</button>
+                <button mat-flat-button class="confirm-block" [disabled]="savingId() === branch.id" (click)="confirmBlock(branch)">
+                  Bloquear sede
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      <p class="hint">
+        <mat-icon>info</mat-icon>
+        <span>La sede principal no se bloquea: para eso desactive el proveedor.</span>
+      </p>
+    }
+  </div>
+</div>

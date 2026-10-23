@@ -38,7 +38,13 @@
       </app-stat-card>
     </div>
 
-    <div class="stats-grid stats-grid-3">
+    <div class="stats-grid stats-grid-4">
+      <app-stat-card
+        icon="wifi"
+        label="Usuarios conectados"
+        [value]="statsData.onlineUsers"
+        color="success">
+      </app-stat-card>
       <app-stat-card
         icon="badge"
         label="Empleados"
@@ -112,6 +118,8 @@
     </div>
   </section>
   }
+
+  <app-site-visits-card></app-site-visits-card>
 
   <section class="activity-section">
     <mat-card class="activity-card">

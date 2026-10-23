@@ -1,0 +1,108 @@
+<mat-card class="visits-card">
+  <div class="visits-header">
+    <div class="visits-title">
+      <mat-icon fontIcon="visibility" class="visits-title-icon"></mat-icon>
+      <div>
+        <h2>Visitas</h2>
+        <p>Personas que abren la página web o la app</p>
+      </div>
+    </div>
+    <mat-button-toggle-group [value]="days()" (change)="changeDays($event.value)" hideSingleSelectionIndicator>
+      <mat-button-toggle [value]="7">7 días</mat-button-toggle>
+      <mat-button-toggle [value]="30">30 días</mat-button-toggle>
+      <mat-button-toggle [value]="90">90 días</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+
+  @let s = stats();
+
+  @if (loading() && !s) {
+  <div class="visits-state">
+    <mat-spinner diameter="32" strokeWidth="3"></mat-spinner>
+  </div>
+  } @else if (failed() && !s) {
+  <div class="visits-state">
+    <mat-icon fontIcon="error_outline"></mat-icon>
+    <span>No se pudieron cargar las visitas</span>
+  </div>
+  } @else if (s) {
+  <div class="visits-totals">
+    <div class="visits-total">
+      <span class="total-label">Hoy</span>
+      <strong>{{ s.today.visitors | number }}</strong>
+      <span class="total-sub">personas · {{ s.today.visits | number }} visitas</span>
+    </div>
+    <div class="visits-total">
+      <span class="total-label">Últimos 7 días</span>
+      <strong>{{ s.last7.visitors | number }}</strong>
+      <span class="total-sub">personas · {{ s.last7.visits | number }} visitas</span>
+    </div>
+    <div class="visits-total">
+      <span class="total-label">Últimos 30 días</span>
+      <strong>{{ s.last30.visitors | number }}</strong>
+      <span class="total-sub">personas · {{ s.last30.visits | number }} visitas</span>
+    </div>
+    <div class="visits-total">
+      <span class="total-label">Desde que se cuenta</span>
+      <strong>{{ s.total.visitors | number }}</strong>
+      <span class="total-sub">personas · {{ s.total.visits | number }} visitas</span>
+    </div>
+  </div>
+
+  <div class="visits-body">
+    <div class="visits-chart">
+      @if (s.total.visits) {
+      <canvas baseChart [type]="'bar'" [data]="chartData" [options]="chartOptions"></canvas>
+      } @else {
+      <div class="visits-state">
+        <mat-icon fontIcon="bar_chart"></mat-icon>
+        <span>Aún no hay visitas registradas</span>
+      </div>
+      }
+    </div>
+
+    <div class="visits-side">
+      <section>
+        <h3>Desde dónde entran</h3>
+        @for (p of s.byPlatform; track p.platform) {
+        <div class="visits-row">
+          <mat-icon [fontIcon]="platformIcon(p.platform)"></mat-icon>
+          <div class="row-main">
+            <div class="row-text">
+              <span>{{ platformLabel(p.platform) }}</span>
+              <strong>{{ p.visitors | number }}</strong>
+            </div>
+            <div class="row-bar"><span [style.width.%]="share(p.visits, s.byPlatform)"></span></div>
+          </div>
+        </div>
+        } @empty {
+        <p class="visits-empty">Sin datos</p>
+        }
+      </section>
+
+      <section>
+        <h3>De dónde llegan</h3>
+        @for (r of s.topReferrers; track r.referrer) {
+        <div class="visits-row">
+          <mat-icon [fontIcon]="r.referrer === 'Directo' ? 'link' : 'travel_explore'"></mat-icon>
+          <div class="row-main">
+            <div class="row-text">
+              <span>{{ r.referrer }}</span>
+              <strong>{{ r.visits | number }}</strong>
+            </div>
+            <div class="row-bar"><span [style.width.%]="share(r.visits, s.topReferrers)"></span></div>
+          </div>
+        </div>
+        } @empty {
+        <p class="visits-empty">Sin datos</p>
+        }
+      </section>
+
+      <section class="visits-audience">
+        <div><strong>{{ s.audience.withoutSession | number }}</strong><span>sin sesión</span></div>
+        <div><strong>{{ s.audience.withSession | number }}</strong><span>con sesión</span></div>
+      </section>
+    </div>
+  </div>
+  }
+</mat-card>

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiBaseService } from '../../../core/services/api-base.service';
-import { Provider } from '../../../core/models/provider.interface';
+import { Provider, ProviderBranch } from '../../../core/models/provider.interface';
 import { ApiResponse, PaginatedResponse } from '../../../core/models/api-response.interface';
 import { PaginatedQuery } from '../../../core/models/paginated-query.interface';
 
@@ -50,5 +50,19 @@ export class ProviderService extends ApiBaseService {
   /** Activa o desactiva (PATCH :id/status). */
   setActive(id: number, active: boolean): Observable<ApiResponse<{ id: number; isActive: boolean }>> {
     return this.http.patch<ApiResponse<{ id: number; isActive: boolean }>>(`${this.baseUrl}/${this.endpoint}/${id}/status`, { active });
+  }
+
+  /** Sedes del negocio (todas, también las inactivas y bloqueadas). */
+  getBranches(providerId: number): Observable<ProviderBranch[]> {
+    return this.http
+      .get<ApiResponse<ProviderBranch[]>>(`${this.baseUrl}/${this.endpoint}/${providerId}/branches`)
+      .pipe(map((res) => res.data ?? []));
+  }
+
+  /** Bloquear exige motivo; desbloquear la vuelve a activar. */
+  setBranchBlocked(providerId: number, branchId: number, blocked: boolean, reason?: string): Observable<ProviderBranch> {
+    return this.http
+      .patch<ApiResponse<ProviderBranch>>(`${this.baseUrl}/${this.endpoint}/${providerId}/branches/${branchId}/block`, { blocked, reason })
+      .pipe(map((res) => res.data as ProviderBranch));
   }
 }

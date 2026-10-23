@@ -2,6 +2,7 @@ export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
   blockedUsers: number;
+  onlineUsers: number;
   totalProviders: number;
   totalEmployees: number;
   totalCategories: number;

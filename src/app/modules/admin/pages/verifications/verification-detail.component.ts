@@ -13,6 +13,7 @@ import { Observable, finalize } from 'rxjs';
 
 import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
 import { VerificationItem, VerificationService } from '../../services/verification.service';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 interface DocView {
   label: string;
@@ -71,7 +72,7 @@ interface DocView {
             } @else if (v.status === 'AWAITING_PAYMENT' && !v.planCode) {
               Plan por elegir · sin pagar
             } @else {
-              {{ v.amount > 0 ? (v.currency + ' ' + (v.amount | number: '1.0-0')) : 'Gratis' }} · {{ v.paidAt ? ('pagado ' + (v.paidAt | date: 'dd/MM/yyyy')) : 'sin pagar' }}
+              {{ v.amount > 0 ? money(v.amount, v.currency) : 'Gratis' }} · {{ v.paidAt ? ('pagado ' + (v.paidAt | date: 'dd/MM/yyyy')) : 'sin pagar' }}
             }
           </strong></div>
           @if (v.planMonths) {
@@ -201,6 +202,7 @@ interface DocView {
 })
 export class VerificationDetailComponent implements OnInit, OnDestroy {
   private readonly data: { id: number } = inject(MAT_DIALOG_DATA);
+  protected readonly money = formatMoney;
   protected readonly dialogRef = inject(MatDialogRef<VerificationDetailComponent, boolean>);
   private readonly service = inject(VerificationService);
   private readonly snackBar = inject(MatSnackBar);

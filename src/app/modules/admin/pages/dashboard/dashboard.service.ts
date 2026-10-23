@@ -10,6 +10,23 @@ interface NestResponse<T = unknown> {
   data?: T;
 }
 
+export interface VisitCount {
+  visits: number;
+  visitors: number;
+}
+
+export interface SiteVisitStats {
+  days: number;
+  today: VisitCount;
+  last7: VisitCount;
+  last30: VisitCount;
+  total: VisitCount;
+  byDay: Array<VisitCount & { date: string }>;
+  byPlatform: Array<VisitCount & { platform: string }>;
+  topReferrers: Array<{ referrer: string; visits: number }>;
+  audience: { withSession: number; withoutSession: number };
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardService extends ApiBaseService {
   // Dashboard del panel (token de admin): toda la plataforma.
@@ -23,8 +40,15 @@ export class DashboardService extends ApiBaseService {
 
   getAlerts(): Observable<any[]> {
     return this.http
-      .get<NestResponse<any>>(`${this.baseUrl}/${this.endpoint}/full`)
-      .pipe(map((res) => res.data?.alerts ?? []));
+      .get<NestResponse<any[]>>(`${this.baseUrl}/${this.endpoint}/activity`)
+      .pipe(map((res) => res.data ?? []));
+  }
+
+  /** Visitas de la página web y la app (últimos `days` días). */
+  getSiteVisits(days = 30): Observable<SiteVisitStats> {
+    return this.http
+      .get<NestResponse<SiteVisitStats>>(`${this.baseUrl}/admin/site-visits`, { params: { days } })
+      .pipe(map((res) => res.data as SiteVisitStats));
   }
 
   getFull(): Observable<any> {

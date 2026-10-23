@@ -19,6 +19,7 @@ import {
   UserBilling,
 } from '../../../../core/models/subscription.interface';
 import { SubscriptionGrantComponent, SubscriptionGrantData } from './subscription-grant.component';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 export interface SubscriptionDetailData {
   userId: string;
@@ -75,7 +76,7 @@ export interface SubscriptionDetailData {
             </div>
             <div class="info-row">
               <span class="info-label">Último valor</span>
-              <span class="info-value">{{ sub.amount | currency: sub.currency : 'symbol' : '1.0-0' }}</span>
+              <span class="info-value">{{ money(sub.amount, sub.currency) }}</span>
             </div>
           } @else {
             <p class="muted">Este usuario no tiene suscripciones.</p>
@@ -95,7 +96,7 @@ export interface SubscriptionDetailData {
                   <span class="tx-ref">{{ tx.reference }}</span>
                   <span class="muted">{{ tx.createdAt | date: 'dd/MM/yyyy HH:mm' }} · {{ cycleLabels[tx.billingCycle] }} · {{ tx.gateway || '—' }}</span>
                 </div>
-                <span class="tx-amount">{{ tx.amount | currency: tx.currency : 'symbol' : '1.0-0' }}</span>
+                <span class="tx-amount">{{ money(tx.amount, tx.currency) }}</span>
                 <span class="badge" [style.background]="txStatusMap[tx.status].color">{{ txStatusMap[tx.status].label }}</span>
               </div>
             }
@@ -144,6 +145,7 @@ export interface SubscriptionDetailData {
 })
 export class SubscriptionDetailComponent implements OnInit {
   protected readonly data: SubscriptionDetailData = inject(MAT_DIALOG_DATA);
+  protected readonly money = formatMoney;
   private readonly dialogRef = inject(MatDialogRef<SubscriptionDetailComponent>);
   private readonly dialog = inject(MatDialog);
   private readonly subscriptionService = inject(SubscriptionService);

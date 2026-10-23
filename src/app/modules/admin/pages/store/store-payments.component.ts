@@ -15,6 +15,7 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
 import { PageEvent, RowAction, RowActionOption, TableColumn } from '../../../../shared/components/data-table/data-table.types';
 import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
 import { AppointmentPaymentItem, StoreAdminService } from '../../services/store.service';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 type Row = AppointmentPaymentItem & { methodLabel: string; amountLabel: string; commissionLabel: string; providerLabel: string; state: string };
 
@@ -176,7 +177,7 @@ export class StorePaymentsComponent implements OnInit {
   }
 
   protected money(v: number): string {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v || 0);
+    return formatMoney(v);
   }
 
   protected sum(list: Row[]): number {

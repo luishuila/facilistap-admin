@@ -183,6 +183,9 @@ export class EmployeeRoleTypeFormComponent implements OnInit {
       publishPosts: [this.data?.permissions?.publishPosts ?? false],
       manageRefunds: [this.data?.permissions?.manageRefunds ?? false],
       manageServices: [this.data?.permissions?.manageServices ?? false],
+      viewDashboard: [this.data?.permissions?.viewDashboard ?? false],
+      manageEmployees: [this.data?.permissions?.manageEmployees ?? false],
+      manageBranches: [this.data?.permissions?.manageBranches ?? false],
     }),
   });
 
@@ -221,6 +224,9 @@ export class EmployeeRoleTypeFormComponent implements OnInit {
         publishPosts: !!v.perms.publishPosts,
         manageRefunds: !!v.perms.manageRefunds,
         manageServices: !!v.perms.manageServices,
+        viewDashboard: !!v.perms.viewDashboard,
+        manageEmployees: !!v.perms.manageEmployees,
+        manageBranches: !!v.perms.manageBranches,
       },
     };
     if (!this.data?.isSystem) {

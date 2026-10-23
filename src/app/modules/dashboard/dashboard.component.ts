@@ -138,6 +138,7 @@ export class DashboardComponent implements OnInit {
             totalUsers: data.totalUsers ?? 0,
             activeUsers: data.activeUsers ?? 0,
             blockedUsers: data.blockedUsers ?? 0,
+            onlineUsers: data.onlineUsers ?? 0,
             totalProviders: data.totalProviders ?? 0,
             totalEmployees: data.totalEmployees ?? 0,
             totalCategories: data.totalCategories ?? 0,

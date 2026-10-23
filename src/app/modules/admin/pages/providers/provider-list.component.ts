@@ -29,6 +29,7 @@ import {
   RowActionOption,
 } from '../../../../shared/components/data-table/data-table.types';
 import { ProviderFormComponent } from './provider-form.component';
+import { ProviderBranchesDialogComponent } from './provider-branches/provider-branches-dialog.component';
 
 @Component({
   selector: 'app-provider-list',
@@ -67,6 +68,7 @@ export class ProviderListComponent implements OnInit {
   /** Sin "Ver": el formulario de edición ya muestra todo. */
   protected readonly rowActions: RowActionOption[] = [
     { action: 'edit', label: 'Editar', icon: 'edit' },
+    { action: 'branches', label: 'Sedes', icon: 'storefront' },
     { action: 'toggle', label: 'Activar / desactivar', icon: 'toggle_on' },
     { action: 'delete', label: 'Eliminar', icon: 'delete', danger: true },
   ];
@@ -148,6 +150,13 @@ export class ProviderListComponent implements OnInit {
     switch (event.action) {
       case 'edit':
         this.openFormDialog(event.row);
+        break;
+      case 'branches':
+        this.dialog.open(ProviderBranchesDialogComponent, {
+          width: '620px',
+          autoFocus: false,
+          data: { provider: event.row },
+        });
         break;
       case 'toggle':
         this.confirmToggle(event.row);

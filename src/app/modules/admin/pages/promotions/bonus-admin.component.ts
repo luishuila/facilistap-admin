@@ -22,6 +22,7 @@ import { SubscriptionPlanOption } from '../../../../core/models/promotion.interf
 import { ProviderService } from '../../services/provider.service';
 import { User } from '../../../../core/models/user.interface';
 import { Provider } from '../../../../core/models/provider.interface';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 interface BonusDraft {
   kind: BonusKind;
@@ -507,7 +508,7 @@ export class BonusAdminComponent implements OnInit {
   }
 
   protected money(v: number): string {
-    return '$' + (Number(v) || 0).toLocaleString('es-CO');
+    return formatMoney(v);
   }
 
   protected kindLabel(k: BonusKind): string {

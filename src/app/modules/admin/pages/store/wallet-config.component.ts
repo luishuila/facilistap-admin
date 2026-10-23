@@ -14,6 +14,7 @@ import { Observable, finalize } from 'rxjs';
 
 import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
 import { GatewayCommission, PackageDiscountType, StoreAdminService, WalletConfig, WalletPackage } from '../../services/store.service';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 /** Tipo de descuento en el formulario: NONE = sin descuento. */
 type DiscountKind = PackageDiscountType | 'NONE';
@@ -331,7 +332,7 @@ export class WalletConfigComponent implements OnInit {
   }
 
   protected money(v: number): string {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v || 0);
+    return formatMoney(v);
   }
 
   /** Descuento en dinero del formulario (igual que lo calcula el servidor). */

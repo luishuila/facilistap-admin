@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { ProviderWithdrawalItem, WithdrawalKind } from '../../services/store.service';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 export interface WithdrawalDialogData {
   mode: 'pay' | 'reject';
@@ -111,6 +112,6 @@ export class WithdrawalDialogComponent {
   }
 
   protected money(v: number): string {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: this.data.item.currency || 'COP', maximumFractionDigits: 0 }).format(v || 0);
+    return formatMoney(v, this.data.item.currency);
   }
 }

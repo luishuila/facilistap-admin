@@ -11,6 +11,7 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
 import { PageEvent, RowAction, RowActionOption, TableColumn } from '../../../../shared/components/data-table/data-table.types';
 import { VerificationItem, VerificationService, VerificationStatus } from '../../services/verification.service';
 import { VerificationDetailComponent } from './verification-detail.component';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 type Row = VerificationItem & { subject: string; owner: string; amountLabel: string };
 
@@ -161,7 +162,7 @@ export class VerificationListComponent implements OnInit {
     if (v.status === 'PENDING' && !v.paidAt) return 'Al aprobar, el usuario elige plan';
     if (v.status === 'AWAITING_PAYMENT' && !v.planCode) return `Plan por elegir${deadline}`;
     if (v.amount <= 0) return `Gratis${plan}`;
-    return `${v.currency} ${v.amount.toLocaleString('es-CO')}${plan}${v.paidAt ? '' : ' (sin pagar)'}${deadline}`;
+    return `${formatMoney(v.amount, v.currency)}${plan}${v.paidAt ? '' : ' (sin pagar)'}${deadline}`;
   }
 
   protected onPage(e: PageEvent): void {

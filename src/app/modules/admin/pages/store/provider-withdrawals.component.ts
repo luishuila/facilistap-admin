@@ -10,6 +10,7 @@ import { DataTableComponent } from '../../../../shared/components/data-table/dat
 import { PageEvent, RowAction, RowActionOption, TableColumn } from '../../../../shared/components/data-table/data-table.types';
 import { ProviderWithdrawalItem, StoreAdminService, WithdrawalKind, WithdrawalStatus } from '../../services/store.service';
 import { WithdrawalDialogComponent, WithdrawalDialogData } from './withdrawal-dialog.component';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 type Row = ProviderWithdrawalItem & { amountLabel: string; methodLabel: string };
 
@@ -149,7 +150,7 @@ export class ProviderWithdrawalsComponent implements OnInit {
   }
 
   protected money(v: number): string {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v || 0);
+    return formatMoney(v);
   }
 
   protected setKind(v: WithdrawalKind): void {

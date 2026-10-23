@@ -25,6 +25,7 @@ import {
 import { finalize } from 'rxjs';
 import { DashboardService } from './dashboard.service';
 import { StatCardComponent } from './stat-card.component';
+import { SiteVisitsCardComponent } from './site-visits-card.component';
 import type { DashboardStats, Activity } from '../../../../core/models/dashboard.interface';
 
 Chart.register(
@@ -40,6 +41,9 @@ Chart.register(
 );
 
 const PQRS_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendiente',
+  in_progress: 'En proceso',
+  resolved: 'Resuelto',
   Pendiente: 'Pendiente',
   En_proceso: 'En proceso',
   'En proceso': 'En proceso',
@@ -80,6 +84,7 @@ const ROLE_COLORS = [
     MatDividerModule,
     BaseChartDirective,
     StatCardComponent,
+    SiteVisitsCardComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -138,6 +143,7 @@ export class DashboardComponent implements OnInit {
             totalUsers: data.totalUsers ?? 0,
             activeUsers: data.activeUsers ?? 0,
             blockedUsers: data.blockedUsers ?? 0,
+            onlineUsers: data.onlineUsers ?? 0,
             totalProviders: data.totalProviders ?? 0,
             totalEmployees: data.totalEmployees ?? 0,
             totalCategories: data.totalCategories ?? 0,

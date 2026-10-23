@@ -38,6 +38,7 @@ import {
   SubscriptionPromotion,
   VERIFICATION_TARGETS,
 } from '../../../../core/models/promotion.interface';
+import { formatMoney } from '../../../../core/utils/money.util';
 
 type Tab = 'subscription' | 'business' | 'bonus';
 const TABS: Tab[] = ['subscription', 'business', 'bonus'];
@@ -909,7 +910,7 @@ export class PromotionAdminComponent implements OnInit {
   }
 
   protected money(v: number): string {
-    return '$' + (Number(v) || 0).toLocaleString('es-CO');
+    return formatMoney(v);
   }
 
   protected statusLabel(s: PromotionStatus): string {

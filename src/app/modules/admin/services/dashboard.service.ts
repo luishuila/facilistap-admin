@@ -23,8 +23,8 @@ export class DashboardService extends ApiBaseService {
 
   getAlerts(): Observable<any[]> {
     return this.http
-      .get<NestResponse<any>>(`${this.baseUrl}/${this.endpoint}/full`)
-      .pipe(map((res) => res.data?.alerts ?? []));
+      .get<NestResponse<any[]>>(`${this.baseUrl}/${this.endpoint}/activity`)
+      .pipe(map((res) => res.data ?? []));
   }
 
   getFull(): Observable<any> {

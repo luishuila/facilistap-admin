@@ -18,9 +18,13 @@ export abstract class ApiBaseService {
   protected http = inject(HttpClient);
   protected baseUrl = environment.apiUrl.replace(/\/$/, '');
 
-  protected _getAll<T>(endpoint: string, params?: Record<string, unknown>): Observable<ApiResponse<T[]>> {
+  protected _getAll<T>(
+    endpoint: string,
+    params?: Record<string, unknown>,
+    headers?: Record<string, string>,
+  ): Observable<ApiResponse<T[]>> {
     const httpParams = this.buildHttpParams(params);
-    return this.http.get<NestResponse<T[]>>(`${this.baseUrl}/${endpoint}`, { params: httpParams }).pipe(
+    return this.http.get<NestResponse<T[]>>(`${this.baseUrl}/${endpoint}`, { params: httpParams, headers }).pipe(
       map((res) => ({ success: res.success, statusCode: res.statusCode, message: res.message, data: res.data })),
       catchError((error) => this.handleError(error)),
     );

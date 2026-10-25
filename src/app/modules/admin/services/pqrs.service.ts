@@ -90,7 +90,7 @@ export class PqrsService extends ApiBaseService {
   private getReasonLabels(): Observable<Record<string, string>> {
     this.reasonLabels$ ??= forkJoin(
       ['COMPLAINT_REASON_COMPLAINT', 'COMPLAINT_REASON_CLAIM', 'COMPLAINT_REASON_REPORT'].map((group) =>
-        this._getAll<{ value: string; label: string }>(`maestra/group/${group}`).pipe(
+        this._getAll<{ value: string; label: string }>(`catalog/${group.toLowerCase().replace(/_/g, '-')}`).pipe(
           map((res) => res.data ?? []),
           catchError(() => of([] as { value: string; label: string }[])),
         ),

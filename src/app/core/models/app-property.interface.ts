@@ -1,4 +1,4 @@
-// Mismos nombres y valores que el backend (entidad AppProperty, /api/app-properties).
+// Mismos nombres y valores que el backend (entidad AppProperty, /api/admin/settings).
 export type AppPropertyCategory = 'APP' | 'URL' | 'API' | 'VERSION' | 'SECURITY' | 'ENV' | 'OTHER';
 export type AppPropertyEnvironment = 'development' | 'staging' | 'production' | 'test';
 export type AppPropertyDataType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON';

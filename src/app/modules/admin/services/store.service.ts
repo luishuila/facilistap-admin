@@ -61,6 +61,10 @@ export interface WalletConfig {
   userWithdrawMin: number;
   /** Días después de la cita en que el negocio puede reembolsar una cita finalizada (0 = no se puede). */
   refundWindowDays: number;
+  /** Horas que dura el enlace de pago para cualquiera. */
+  paymentLinkHours: number;
+  /** Horas que dura la solicitud de pago a un usuario de la app. */
+  paymentRequestHours: number;
   /** Minutos desde que se finaliza la cita hasta que el negocio la puede retirar (0 = de una vez). */
   withdrawHoldMinutes: number;
   /** Comisión por pasarela de pago que se le suma al cliente (pagos con billetera o con Wompi). */
@@ -123,6 +127,10 @@ export class StoreAdminService extends ApiBaseService {
 
   updateRefundWindow(days: number): Observable<WalletConfig> {
     return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'refund-window', { days }).pipe(map((r) => r.data as WalletConfig));
+  }
+
+  updatePaymentLinkHours(body: { link?: number; request?: number }): Observable<WalletConfig> {
+    return this._update<WalletConfig>(`${this.endpoint}/wallet-config`, 'payment-link-hours', body).pipe(map((r) => r.data as WalletConfig));
   }
 
   updateWithdrawHold(minutes: number): Observable<WalletConfig> {

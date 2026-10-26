@@ -185,6 +185,37 @@ type PackageDraft = WalletPackage & { form: PackageForm };
           <small class="muted">Ahora: {{ config()?.refundWindowDays ?? 7 }} días después de la cita.</small>
         </section>
 
+        <!-- Enlace de pago: otra persona paga la agenda de un cliente -->
+        <section class="panel">
+          <div class="panel-head">
+            <mat-icon>link</mat-icon>
+            <div>
+              <h2>Que otro pague la agenda</h2>
+              <p>El cliente puede compartir un <strong>enlace de pago</strong> (lo paga cualquiera con Wompi, sin cuenta) o enviar una <strong>solicitud a un usuario</strong> de la app (le llega una notificación y paga con su billetera o Wompi, o la rechaza). Cada uno dura sus horas; nunca pasa de la hora de la agenda.</p>
+            </div>
+          </div>
+          <div class="row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Horas del enlace de pago</mat-label>
+              <input matInput type="number" min="1" max="720" step="1" [(ngModel)]="paymentLinkHours" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" (click)="savePaymentLinkHours('link')" [disabled]="busy()">
+              <mat-icon>save</mat-icon> Guardar horas
+            </button>
+          </div>
+          <small class="muted">Enlace de pago, ahora: {{ config()?.paymentLinkHours ?? 24 }} horas (o hasta la hora de la agenda, lo que llegue primero).</small>
+          <div class="row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Horas de la solicitud a un usuario</mat-label>
+              <input matInput type="number" min="1" max="720" step="1" [(ngModel)]="paymentRequestHours" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" (click)="savePaymentLinkHours('request')" [disabled]="busy()">
+              <mat-icon>save</mat-icon> Guardar horas
+            </button>
+          </div>
+          <small class="muted">Solicitud a un usuario, ahora: {{ config()?.paymentRequestHours ?? 24 }} horas (o hasta la hora de la agenda, lo que llegue primero).</small>
+        </section>
+
         <!-- Paquetes -->
         <section class="panel">
           <div class="panel-head">
@@ -315,6 +346,8 @@ export class WalletConfigComponent implements OnInit {
   protected withdrawMin: number | null = null;
   /** Días después de la cita para reembolsar una cita finalizada. */
   protected refundDays: number | null = 7;
+  protected paymentLinkHours: number | null = 24;
+  protected paymentRequestHours: number | null = 24;
   /** Minutos desde que se finaliza la cita hasta que se puede retirar (0 = de una vez). */
   protected holdMinutes: number | null = 0;
   protected readonly gateways = [
@@ -403,6 +436,18 @@ export class WalletConfigComponent implements OnInit {
     this.run(this.service.updateRefundWindow(days), 'Días para reembolsar guardados');
   }
 
+  protected savePaymentLinkHours(kind: 'link' | 'request'): void {
+    const hours = Number(kind === 'link' ? this.paymentLinkHours : this.paymentRequestHours);
+    if (!Number.isInteger(hours) || hours < 1 || hours > 720) {
+      this.snackBar.open('Las horas deben ser un número entero entre 1 y 720 (30 días).', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    this.run(
+      this.service.updatePaymentLinkHours({ [kind]: hours }),
+      kind === 'link' ? 'Horas del enlace de pago guardadas' : 'Horas de la solicitud a un usuario guardadas',
+    );
+  }
+
   protected saveWithdrawMin(): void {
     this.run(this.service.updateUserWithdrawMin(Number(this.withdrawMin)), 'Mínimo de retiro guardado');
   }
@@ -461,6 +506,8 @@ export class WalletConfigComponent implements OnInit {
     this.max = config.topUp?.max ?? null;
     this.withdrawMin = config.userWithdrawMin ?? null;
     this.refundDays = config.refundWindowDays ?? 7;
+    this.paymentLinkHours = config.paymentLinkHours ?? 24;
+    this.paymentRequestHours = config.paymentRequestHours ?? 24;
     this.holdMinutes = config.withdrawHoldMinutes ?? 0;
     if (config.commissions) {
       this.commissionForm = {

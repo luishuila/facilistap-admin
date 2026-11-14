@@ -24,6 +24,7 @@ export const PANEL_MODULE_ROUTES: Record<string, string> = {
   settings: '/admin/configuracion',
   maestra: '/admin/tabla-maestra',
   menu: '/admin/menu-app',
+  help_center: '/admin/centro-ayuda',
 };
 
 /**

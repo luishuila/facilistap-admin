@@ -1,0 +1,318 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Centro de ayuda</h1>
+      <p class="page-subtitle">
+        Los artículos que ve la gente en la app (Mi cuenta › <strong>Centro de ayuda</strong> y "¿Necesitas ayuda?" del inicio de sesión),
+        organizados por tema y en cada idioma. Aquí también ve si les sirvieron y qué buscan sin encontrar.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button class="action-btn" (click)="openCategory()">
+        <mat-icon>create_new_folder</mat-icon>
+        <span>Nuevo tema</span>
+      </button>
+      <button mat-flat-button color="primary" class="action-btn" (click)="openArticle()">
+        <mat-icon>post_add</mat-icon>
+        <span>Nuevo artículo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Números -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-icon"><mat-icon>article</mat-icon></div>
+      <div>
+        <strong>{{ summary()?.activeArticles ?? '—' }}</strong>
+        <span>Artículos publicados</span>
+        <small>{{ summary()?.articles ?? 0 }} en total · {{ summary()?.categories ?? 0 }} temas</small>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon"><mat-icon>visibility</mat-icon></div>
+      <div>
+        <strong>{{ summary()?.views ?? '—' }}</strong>
+        <span>Lecturas</span>
+        <small>{{ summary()?.featuredArticles ?? 0 }} en Preguntas frecuentes</small>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon"><mat-icon>thumb_up</mat-icon></div>
+      <div>
+        <strong>{{ helpfulRate() === null ? '—' : helpfulRate() + '%' }}</strong>
+        <span>Les resultó útil</span>
+        <small>{{ summary()?.helpful ?? 0 }} sí · {{ summary()?.notHelpful ?? 0 }} no</small>
+      </div>
+    </div>
+    <div class="kpi" [class.warn]="(summary()?.missTerms ?? 0) > 0">
+      <div class="kpi-icon"><mat-icon>search_off</mat-icon></div>
+      <div>
+        <strong>{{ summary()?.missTerms ?? '—' }}</strong>
+        <span>Búsquedas sin resultado</span>
+        <small>{{ summary()?.missSearches ?? 0 }} veces buscadas</small>
+      </div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="empty card"><mat-spinner diameter="32"></mat-spinner></div>
+  } @else {
+    <mat-tab-group class="tabs" animationDuration="150ms" (selectedIndexChange)="onTabChange($event)">
+      <!-- ═══ ARTÍCULOS ═══ -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">article</mat-icon> Artículos <span class="count">{{ articles().length }}</span>
+        </ng-template>
+
+        <div class="tab-body">
+          <div class="filters">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
+              <mat-icon matPrefix>search</mat-icon>
+              <mat-label>Buscar artículo</mat-label>
+              <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Título, dirección o resumen" autocomplete="off" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Tema</mat-label>
+              <mat-select [value]="categoryFilter()" (selectionChange)="categoryFilter.set($event.value)">
+                <mat-option value="all">Todos los temas</mat-option>
+                @for (c of categories(); track c.id) {
+                  <mat-option [value]="c.id">{{ name(c.name) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Estado</mat-label>
+              <mat-select [value]="statusFilter()" (selectionChange)="statusFilter.set($event.value)">
+                <mat-option value="all">Todos</mat-option>
+                <mat-option value="active">Publicados</mat-option>
+                <mat-option value="hidden">Ocultos</mat-option>
+                <mat-option value="featured">Preguntas frecuentes</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          @if (!groups().length) {
+            <div class="empty card">
+              <mat-icon>search_off</mat-icon>
+              <span>No hay artículos con esos filtros.</span>
+              <button mat-button color="primary" (click)="clearFilters()">Quitar filtros</button>
+            </div>
+          }
+
+          @for (g of groups(); track g.category.id) {
+            <div class="card">
+              <div class="card-head">
+                <strong>{{ name(g.category.name) }}</strong>
+                @if (!g.category.isActive) {
+                  <span class="chip warn">Tema oculto</span>
+                }
+                <span class="head-meta">{{ g.articles.length }} artículo(s)</span>
+                <button mat-icon-button type="button" matTooltip="Nuevo artículo en este tema" (click)="openArticle(undefined, { categoryId: g.category.id })">
+                  <mat-icon>add</mat-icon>
+                </button>
+              </div>
+
+              @if (!g.articles.length) {
+                <div class="row empty-row">Este tema aún no tiene artículos.</div>
+              }
+
+              @for (a of g.articles; track a.id) {
+                <div class="row" [class.inactive]="!a.isActive">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="star"
+                    [class.on]="a.isFeatured"
+                    [disabled]="busy()"
+                    [matTooltip]="a.isFeatured ? 'Quitar de Preguntas frecuentes' : 'Poner en Preguntas frecuentes'"
+                    (click)="toggleArticle(a, 'isFeatured', !a.isFeatured)">
+                    <mat-icon>{{ a.isFeatured ? 'star' : 'star_border' }}</mat-icon>
+                  </button>
+
+                  <div class="main" (click)="openArticle(a)">
+                    <strong>{{ name(a.title) }}</strong>
+                    <small><code>/ayuda/articulo/{{ a.slug }}</code>@if (a.actionLink) { · botón a {{ a.actionLink }} }</small>
+                    <div class="chips">
+                      @for (code of a.langs; track code) {
+                        <span class="chip lang" [class.es]="code === 'es'">{{ code.toUpperCase() }}</span>
+                      }
+                      @if (a.langs.length < 2) {
+                        <span class="chip muted" matTooltip="Los demás idiomas ven el español">Solo {{ (a.langs[0] || 'es').toUpperCase() }}</span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="metrics">
+                    <span matTooltip="Lecturas"><mat-icon>visibility</mat-icon>{{ a.viewCount }}</span>
+                    <span matTooltip="Le sirvió"><mat-icon>thumb_up</mat-icon>{{ a.helpful }}</span>
+                    <span matTooltip="No le sirvió" [class.bad]="a.notHelpful > a.helpful"><mat-icon>thumb_down</mat-icon>{{ a.notHelpful }}</span>
+                    @let p = percent(a.helpful, a.notHelpful);
+                    @if (p !== null) {
+                      <span class="pct" [class.bad]="p < 50">{{ p }}%</span>
+                    }
+                  </div>
+
+                  <mat-slide-toggle
+                    color="primary"
+                    [checked]="a.isActive"
+                    [disabled]="busy()"
+                    (change)="toggleArticle(a, 'isActive', $event.checked)"
+                    [matTooltip]="a.isActive ? 'Publicado en la app' : 'Oculto en la app'" />
+                  <button mat-icon-button type="button" matTooltip="Editar" (click)="openArticle(a)"><mat-icon>edit</mat-icon></button>
+                  <button mat-icon-button type="button" matTooltip="Eliminar" class="danger" (click)="removeArticle(a)"><mat-icon>delete</mat-icon></button>
+                </div>
+              }
+            </div>
+          }
+          @if (groups().length) {
+            <p class="foot">{{ visibleCount() }} de {{ articles().length }} artículos</p>
+          }
+        </div>
+      </mat-tab>
+
+      <!-- ═══ TEMAS ═══ -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">folder</mat-icon> Temas <span class="count">{{ categories().length }}</span>
+        </ng-template>
+
+        <div class="tab-body">
+          <p class="tab-hint">Así aparecen en la portada del Centro de ayuda (solo los que tienen artículos publicados).</p>
+          <div class="card">
+            @if (!categories().length) {
+              <div class="empty"><mat-icon>folder_off</mat-icon><span>No hay temas. Cree el primero.</span></div>
+            }
+            @for (c of categories(); track c.id; let i = $index; let first = $first; let last = $last) {
+              <div class="row" [class.inactive]="!c.isActive">
+                <div class="order">
+                  <button mat-icon-button type="button" matTooltip="Subir" [disabled]="first || busy()" (click)="moveCategory(i, -1)">
+                    <mat-icon>keyboard_arrow_up</mat-icon>
+                  </button>
+                  <button mat-icon-button type="button" matTooltip="Bajar" [disabled]="last || busy()" (click)="moveCategory(i, 1)">
+                    <mat-icon>keyboard_arrow_down</mat-icon>
+                  </button>
+                </div>
+                <div class="main" (click)="openCategory(c)">
+                  <strong>{{ name(c.name) }}</strong>
+                  <small>{{ name(c.description) || 'Sin descripción' }}</small>
+                  <div class="chips">
+                    <span class="chip"><code>{{ c.code }}</code></span>
+                    <span class="chip muted">ícono {{ c.icon }}</span>
+                    <span class="chip">{{ c.activeArticleCount }} publicados de {{ c.articleCount }}</span>
+                  </div>
+                </div>
+                <mat-slide-toggle
+                  color="primary"
+                  [checked]="c.isActive"
+                  [disabled]="busy()"
+                  (change)="toggleCategory(c, $event.checked)"
+                  [matTooltip]="c.isActive ? 'Visible en la app' : 'Oculto en la app'" />
+                <button mat-icon-button type="button" matTooltip="Editar" (click)="openCategory(c)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button type="button" matTooltip="Eliminar" class="danger" (click)="removeCategory(c)"><mat-icon>delete</mat-icon></button>
+              </div>
+            }
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- ═══ OPINIONES ═══ -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">rate_review</mat-icon> Opiniones
+          @if (summary()?.notHelpful) {
+            <span class="count bad">{{ summary()?.notHelpful }}</span>
+          }
+        </ng-template>
+
+        <div class="tab-body">
+          <div class="filters">
+            <mat-button-toggle-group [value]="feedbackFilter()" (change)="setFeedbackFilter($event.value)" hideSingleSelectionIndicator>
+              <mat-button-toggle value="no"><mat-icon>thumb_down</mat-icon> No le sirvió</mat-button-toggle>
+              <mat-button-toggle value="yes"><mat-icon>thumb_up</mat-icon> Le sirvió</mat-button-toggle>
+              <mat-button-toggle value="all">Todas</mat-button-toggle>
+            </mat-button-toggle-group>
+            <button mat-icon-button type="button" matTooltip="Actualizar" (click)="loadFeedback()"><mat-icon>refresh</mat-icon></button>
+          </div>
+          <p class="tab-hint">Las de "No le sirvió" traen el motivo y lo que la persona esperaba encontrar: úselas para mejorar el artículo.</p>
+
+          <div class="card">
+            @if (feedbackLoading()) {
+              <div class="empty"><mat-spinner diameter="28"></mat-spinner></div>
+            } @else if (!feedback().length) {
+              <div class="empty"><mat-icon>reviews</mat-icon><span>Aún no hay opiniones aquí.</span></div>
+            }
+            @if (!feedbackLoading()) {
+              @for (f of feedback(); track f.id) {
+                <div class="row feedback">
+                  <span class="vote" [class.yes]="f.helpful" [class.no]="!f.helpful">
+                    <mat-icon>{{ f.helpful ? 'thumb_up' : 'thumb_down' }}</mat-icon>
+                  </span>
+                  <div class="main" (click)="openArticleById(f.articleId)">
+                    <strong>{{ name(f.articleTitle) }}</strong>
+                    @if (f.reasonLabel || f.comment) {
+                      <p class="comment">
+                        @if (f.reasonLabel) {
+                          <span class="chip warn">{{ f.reasonLabel }}</span>
+                        }
+                        {{ f.comment }}
+                      </p>
+                    }
+                    <small>
+                      {{ f.createdAt | date: 'd MMM y, h:mm a' }}
+                      · {{ f.userName || f.userEmail || 'Sin sesión' }}
+                      @if (f.lang) { · leído en {{ f.lang.toUpperCase() }} }
+                    </small>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- ═══ BÚSQUEDAS SIN RESULTADO ═══ -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">search_off</mat-icon> Búsquedas sin resultado
+          @if (summary()?.missTerms) {
+            <span class="count bad">{{ summary()?.missTerms }}</span>
+          }
+        </ng-template>
+
+        <div class="tab-body">
+          <div class="filters">
+            <p class="tab-hint grow">
+              Lo que la gente buscó en el Centro de ayuda y no encontró. Escriba el artículo que falta (el término queda como palabra clave)
+              o descártelo si no aplica.
+            </p>
+            <button mat-icon-button type="button" matTooltip="Actualizar" (click)="loadMisses()"><mat-icon>refresh</mat-icon></button>
+          </div>
+
+          <div class="card">
+            @if (missesLoading()) {
+              <div class="empty"><mat-spinner diameter="28"></mat-spinner></div>
+            } @else if (!misses().length) {
+              <div class="empty"><mat-icon>task_alt</mat-icon><span>Nada pendiente: todo lo que buscan tiene respuesta.</span></div>
+            }
+            @if (!missesLoading()) {
+              @for (m of misses(); track m.id) {
+                <div class="row">
+                  <span class="times" matTooltip="Veces que se buscó">{{ m.searchCount }}×</span>
+                  <div class="main">
+                    <strong>"{{ m.term }}"</strong>
+                    <small>{{ m.lang.toUpperCase() }} · última vez {{ m.lastSearchedAt | date: 'd MMM y, h:mm a' }}</small>
+                  </div>
+                  <button mat-stroked-button type="button" class="small-btn" (click)="writeArticleFor(m)">
+                    <mat-icon>post_add</mat-icon> Escribir artículo
+                  </button>
+                  <button mat-icon-button type="button" matTooltip="Descartar" (click)="dismissMiss(m)"><mat-icon>close</mat-icon></button>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

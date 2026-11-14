@@ -684,6 +684,7 @@ export class MainLayoutComponent implements OnInit {
       label: 'Atención', icon: 'support_agent', route: 'group:support',
       children: [
         { label: 'PQRS', icon: 'feedback', route: '/admin/pqrs', module: 'pqrs' },
+        { label: 'Centro de ayuda', icon: 'help_center', route: '/admin/centro-ayuda', module: 'help_center' },
         { label: 'Verificaciones', icon: 'verified', route: '/admin/verificaciones', module: 'verifications' },
         { label: 'Notificaciones', icon: 'campaign', route: '/admin/notificaciones', module: 'notifications' },
       ],

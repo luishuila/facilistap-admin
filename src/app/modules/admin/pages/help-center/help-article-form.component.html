@@ -1,0 +1,193 @@
+<div class="dialog">
+  <div class="dialog-header">
+    <div class="header-icon"><mat-icon>{{ isEdit ? 'edit_note' : 'post_add' }}</mat-icon></div>
+    <div class="header-text">
+      <h2>{{ isEdit ? 'Editar artículo de ayuda' : 'Nuevo artículo de ayuda' }}</h2>
+      <p>
+        Se ve en la app en <code>/ayuda/articulo/{{ form.controls.slug.value || 'direccion-del-articulo' }}</code>.
+        Los cambios se aplican sin publicar una versión nueva.
+      </p>
+    </div>
+    <button mat-icon-button type="button" class="close" (click)="dialogRef.close(false)" [disabled]="saving()" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading"><mat-spinner diameter="32"></mat-spinner></div>
+  } @else {
+    <div class="body">
+      <!-- 1. Dónde aparece -->
+      <section class="block" [formGroup]="form">
+        <div class="block-title"><span class="num">1</span> Dónde aparece</div>
+        <div class="grid">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Tema</mat-label>
+            <mat-select formControlName="categoryId">
+              @for (c of data.categories; track c.id) {
+                <mat-option [value]="c.id">{{ categoryName(c.name) }}{{ c.isActive ? '' : ' (oculto)' }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Dirección (slug)</mat-label>
+            <input matInput formControlName="slug" placeholder="como-agendar-un-servicio" autocomplete="off" (input)="onSlugInput()" />
+            <mat-hint>{{ isEdit ? 'Si la cambia, los enlaces viejos dejan de servir.' : 'Se arma sola con el título en español.' }}</mat-hint>
+            @if (form.controls.slug.hasError('pattern')) {
+              <mat-error>Solo minúsculas, números y guiones.</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Orden dentro del tema</mat-label>
+            <input matInput type="number" formControlName="sortOrder" />
+            <mat-hint>{{ isEdit ? 'Menor = más arriba' : 'Vacío o 0: al final del tema' }}</mat-hint>
+          </mat-form-field>
+          <div class="toggles">
+            <mat-slide-toggle color="primary" formControlName="isActive">Publicado</mat-slide-toggle>
+            <mat-slide-toggle color="primary" formControlName="isFeatured">En "Preguntas frecuentes"</mat-slide-toggle>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Contenido por idioma -->
+      <section class="block">
+        <div class="block-title">
+          <span class="num">2</span> Contenido
+          <small>El español es obligatorio; los idiomas sin traducir muestran el español.</small>
+        </div>
+
+        <div class="langs">
+          <mat-button-toggle-group [value]="lang()" (change)="selectLang($event.value)" hideSingleSelectionIndicator>
+            @for (l of languages(); track l.code) {
+              <mat-button-toggle [value]="l.code" [matTooltip]="filledLangs().has(l.code) ? 'Traducido' : 'Sin traducir'">
+                <span class="lang">
+                  {{ l.flag ? l.flag + ' ' : '' }}{{ l.code.toUpperCase() }}
+                  <span class="dot" [class.on]="filledLangs().has(l.code)"></span>
+                </span>
+              </mat-button-toggle>
+            }
+          </mat-button-toggle-group>
+          @if (lang() !== 'es') {
+            <button mat-stroked-button type="button" class="copy-es" (click)="copyFromSpanish()" matTooltip="Pega el texto en español para traducirlo encima">
+              <mat-icon>content_copy</mat-icon> Copiar del español
+            </button>
+          }
+        </div>
+
+        <div class="lang-fields" [formGroup]="langForm" [attr.dir]="['ar', 'he'].includes(lang()) ? 'rtl' : null">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full">
+            <mat-label>Título ({{ lang().toUpperCase() }})</mat-label>
+            <input matInput formControlName="title" maxlength="160" placeholder="¿Cómo agendo un servicio?" autocomplete="off" />
+            <mat-hint align="end">{{ langForm.controls.title.value.length }}/160</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full">
+            <mat-label>Resumen de una línea ({{ lang().toUpperCase() }})</mat-label>
+            <input matInput formControlName="summary" maxlength="300" placeholder="Se ve en las listas y en la búsqueda" autocomplete="off" />
+            <mat-hint>Opcional: si lo deja vacío se usa el comienzo del contenido.</mat-hint>
+          </mat-form-field>
+
+          <div class="editor">
+            <div class="editor-pane">
+              <div class="toolbar" dir="ltr">
+                <button mat-icon-button type="button" matTooltip="Subtítulo (##)" (click)="linePrefix('h')"><mat-icon>title</mat-icon></button>
+                <button mat-icon-button type="button" matTooltip="Negrita (**texto**)" (click)="wrap('**', '**', 'texto')"><mat-icon>format_bold</mat-icon></button>
+                <button mat-icon-button type="button" matTooltip="Pasos numerados (1.)" (click)="linePrefix('ol')"><mat-icon>format_list_numbered</mat-icon></button>
+                <button mat-icon-button type="button" matTooltip="Lista con puntos (-)" (click)="linePrefix('ul')"><mat-icon>format_list_bulleted</mat-icon></button>
+                <button mat-icon-button type="button" matTooltip="Nota destacada (>)" (click)="linePrefix('tip')"><mat-icon>lightbulb</mat-icon></button>
+                <button mat-icon-button type="button" matTooltip="Enlace a una pantalla de la app" (click)="insertLink()"><mat-icon>link</mat-icon></button>
+                <button mat-icon-button type="button" matTooltip="Imagen (dirección https)" (click)="insertImage()"><mat-icon>image</mat-icon></button>
+                <span class="spacer"></span>
+                <button mat-button type="button" (click)="showPreview.set(!showPreview())">
+                  <mat-icon>{{ showPreview() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  {{ showPreview() ? 'Ocultar vista previa' : 'Vista previa' }}
+                </button>
+              </div>
+              <textarea
+                #bodyInput
+                class="body-input"
+                formControlName="body"
+                rows="16"
+                maxlength="20000"
+                placeholder="1. Abre la pestaña Agenda.&#10;2. Toca **Cancelar**.&#10;&#10;> Si la pagaste, el dinero vuelve a tu billetera."></textarea>
+              <div class="editor-hint">
+                <code>## Subtítulo</code> · <code>1. Paso</code> · <code>- Punto</code> · <code>**negrita**</code> ·
+                <code>&gt; Nota</code> · <code>[texto](/navigation/...)</code>
+              </div>
+            </div>
+
+            @if (showPreview()) {
+              <div class="preview-pane">
+                <div class="preview-label"><mat-icon>smartphone</mat-icon> Así se ve en la app</div>
+                <div class="phone">
+                  <h1>{{ langForm.controls.title.value || 'Título del artículo' }}</h1>
+                  @if (previewHtml()) {
+                    <div class="help-preview" [innerHTML]="previewHtml()"></div>
+                  } @else {
+                    <p class="muted">El contenido aparecerá aquí mientras escribe.</p>
+                  }
+                  @if (form.controls.actionLink.value) {
+                    <div class="fake-btn">{{ langForm.controls.actionLabel.value || 'Ir ahora' }} <mat-icon>arrow_forward</mat-icon></div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Botón al final -->
+      <section class="block" [formGroup]="form">
+        <div class="block-title"><span class="num">3</span> Botón al final (opcional) <small>Lleva a la pantalla de la app donde se hace lo que explica el artículo</small></div>
+        <div class="grid">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Pantalla de la app</mat-label>
+            <input matInput formControlName="actionLink" [matAutocomplete]="routesAuto" placeholder="/navigation/settings/billetera" autocomplete="off" />
+            <mat-autocomplete #routesAuto="matAutocomplete">
+              @for (r of appRoutes; track r.link) {
+                <mat-option [value]="r.link">{{ r.label }} <small class="route">{{ r.link }}</small></mat-option>
+              }
+            </mat-autocomplete>
+            <mat-hint>{{ routeLabel(form.controls.actionLink.value) || 'Ruta de la app (/navigation/...) o enlace https://' }}</mat-hint>
+            @if (form.controls.actionLink.hasError('pattern')) {
+              <mat-error>Debe empezar por / o por https://</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" [formGroup]="langForm">
+            <mat-label>Texto del botón ({{ lang().toUpperCase() }})</mat-label>
+            <input matInput formControlName="actionLabel" maxlength="60" placeholder="Ir a mi billetera" autocomplete="off" />
+            <mat-hint>Vacío: "Ir ahora"</mat-hint>
+          </mat-form-field>
+        </div>
+      </section>
+
+      <!-- 4. Búsqueda -->
+      <section class="block" [formGroup]="form">
+        <div class="block-title"><span class="num">4</span> Búsqueda</div>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full">
+          <mat-label>Otras palabras con que lo buscan</mat-label>
+          <textarea matInput formControlName="keywords" rows="2" placeholder="plata, sacar, retirar, transferir, withdraw"></textarea>
+          <mat-hint>Separadas por coma. Sirven en cualquier idioma: la búsqueda no distingue tildes.</mat-hint>
+        </mat-form-field>
+      </section>
+
+      @if (article(); as a) {
+        <div class="stats">
+          <span><mat-icon>visibility</mat-icon> {{ a.viewCount }} lecturas</span>
+          <span><mat-icon>update</mat-icon> Actualizado {{ a.updatedAt | date: 'd MMM y, h:mm a' }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="actions">
+    <button mat-stroked-button type="button" (click)="dialogRef.close(false)" [disabled]="saving()">Cancelar</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="loading() || saving()">
+      @if (saving()) {
+        <mat-spinner diameter="18"></mat-spinner>
+      } @else {
+        <mat-icon>save</mat-icon>
+      }
+      {{ isEdit ? 'Guardar cambios' : 'Crear artículo' }}
+    </button>
+  </div>
+</div>

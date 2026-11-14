@@ -64,6 +64,14 @@ export const ADMIN_ROUTES: Routes = [
       import('./pages/pqrs/pqrs-list.component').then((m) => m.PqrsListComponent),
   },
   {
+    // Centro de ayuda de la app: temas, artículos por idioma, opiniones y búsquedas sin resultado
+    path: 'centro-ayuda',
+    canActivate: [panelModuleGuard],
+    data: { panelModule: 'help_center' },
+    loadComponent: () =>
+      import('./pages/help-center/help-center.component').then((m) => m.HelpCenterComponent),
+  },
+  {
     path: 'billetera',
     canActivate: [panelModuleGuard],
     data: { panelModule: 'store' },

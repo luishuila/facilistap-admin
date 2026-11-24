@@ -1,0 +1,20 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - nvm install 22 && nvm use 22
+        - npm ci
+    build:
+      commands:
+        - npm run build
+        # El build con outputMode "server" no genera index.html en la raíz
+        # (solo index.csr.html). Amplify sirve estático, así que se copia.
+        - cp dist/facilistap-admin/browser/index.csr.html dist/facilistap-admin/browser/index.html
+  artifacts:
+    baseDirectory: dist/facilistap-admin/browser
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*

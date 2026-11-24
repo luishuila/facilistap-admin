@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
+  apiUrl: 'https://prd.facilistap.com/api',
   apiVersion: '',
 };

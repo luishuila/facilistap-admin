@@ -172,6 +172,12 @@ export interface AppMenuFormData {
         </section>
 
         <mat-slide-toggle color="primary" formControlName="isActive">Activa (se muestra en la app)</mat-slide-toggle>
+        <div class="platforms">
+          <span>Se ve en:</span>
+          <mat-slide-toggle color="primary" formControlName="showWeb">Web</mat-slide-toggle>
+          <mat-slide-toggle color="primary" formControlName="showAndroid">Android</mat-slide-toggle>
+          <mat-slide-toggle color="primary" formControlName="showIos">iPhone</mat-slide-toggle>
+        </div>
       </form>
 
       <div class="actions">
@@ -208,6 +214,7 @@ export interface AppMenuFormData {
       .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; mat-form-field { width: 100%; } }
       .span-2 { grid-column: 1 / -1; }
       .full { width: 100%; }
+      .platforms { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 12px; font-size: 13px; color: #475569; }
       .warn { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; color: #b45309;
         mat-icon { font-size: 16px; width: 16px; height: 16px; } }
       a { color: var(--fac-primary-deep, #0078ff); }
@@ -244,6 +251,9 @@ export class AppMenuFormComponent {
     employeeRoleTypeIds: [this.data.item?.employeeRoleTypeIds ?? [] as number[]],
     labelKey: [this.data.item?.labelKey ?? '', [Validators.maxLength(120)]],
     isActive: [this.data.item?.isActive ?? true],
+    showWeb: [this.data.item?.showWeb ?? true],
+    showAndroid: [this.data.item?.showAndroid ?? true],
+    showIos: [this.data.item?.showIos ?? true],
   });
 
   constructor() {
@@ -313,6 +323,9 @@ export class AppMenuFormComponent {
       userIds: this.users().map((u) => u.id),
       sortOrder: Number(v.sortOrder ?? 0),
       isActive: !!v.isActive,
+      showWeb: !!v.showWeb,
+      showAndroid: !!v.showAndroid,
+      showIos: !!v.showIos,
       labelKey: v.labelKey?.trim() || null,
       label,
     };

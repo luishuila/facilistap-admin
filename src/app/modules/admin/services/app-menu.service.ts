@@ -19,6 +19,10 @@ export interface AppMenuItem {
   userIds: string[];
   users?: AppMenuUser[];
   isActive: boolean;
+  /** Por plataforma (además de isActive): web, Android, iPhone. */
+  showWeb: boolean;
+  showAndroid: boolean;
+  showIos: boolean;
   sortOrder: number;
 }
 
@@ -50,6 +54,9 @@ export interface SaveAppMenuItem {
   employeeRoleTypeIds?: number[];
   userIds?: string[];
   isActive?: boolean;
+  showWeb?: boolean;
+  showAndroid?: boolean;
+  showIos?: boolean;
   sortOrder?: number;
 }
 

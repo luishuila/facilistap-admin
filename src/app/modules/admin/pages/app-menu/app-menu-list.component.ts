@@ -87,6 +87,9 @@ interface Section {
                   @for (u of it.users ?? []; track u.id) {
                     <span class="chip user" [matTooltip]="u.email">{{ u.name || u.email }}</span>
                   }
+                  @if (it.showWeb === false) { <span class="chip warn">Oculta en web</span> }
+                  @if (it.showAndroid === false) { <span class="chip warn">Oculta en Android</span> }
+                  @if (it.showIos === false) { <span class="chip warn">Oculta en iPhone</span> }
                   @if (!it.roles.length && !it.roleIds.length && !it.employeeRoleTypeIds.length && !it.userIds.length) {
                     <span class="chip warn">Sin destinatarios: nadie la ve</span>
                   }

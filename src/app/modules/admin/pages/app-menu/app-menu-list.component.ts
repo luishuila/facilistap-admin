@@ -75,7 +75,7 @@ interface Section {
                 <strong>{{ labelOf(it) }}</strong>
                 <small><code>{{ it.code }}</code> · {{ it.link }} · ícono {{ it.icon }}</small>
                 <div class="roles">
-                  @for (r of it.roles; track r) {
+                  @for (r of (showRoleCodes ? it.roles : []); track r) {
                     <span class="chip">{{ roleLabel(r) }}</span>
                   }
                   @for (id of it.roleIds; track id) {
@@ -141,6 +141,8 @@ export class AppMenuListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly items = signal<AppMenuItem[]>([]);
+  /** Oculto: los roles se muestran por id (roleIds / employeeRoleTypeIds). */
+  protected readonly showRoleCodes = false;
   protected readonly roles = signal<AppMenuRole[]>([]);
   protected readonly targets = signal<AppMenuTargets>({ roles: [], employeeRoleTypes: [] });
   protected readonly loading = signal(false);
@@ -184,6 +186,7 @@ export class AppMenuListComponent implements OnInit {
   protected sectionLabel(name: string): string {
     if (name === 'SETTINGS') return 'Mi cuenta (SETTINGS)';
     if (name === 'TABS') return 'Barra inferior de la app (TABS)';
+    if (name === 'BUSINESS') return 'Menú del negocio (BUSINESS)';
     return name;
   }
 

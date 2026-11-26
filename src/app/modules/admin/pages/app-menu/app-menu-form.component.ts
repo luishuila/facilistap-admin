@@ -75,6 +75,7 @@ export interface AppMenuFormData {
               <mat-select formControlName="section">
                 <mat-option value="SETTINGS">Mi cuenta</mat-option>
                 <mat-option value="TABS">Barra inferior</mat-option>
+                <mat-option value="BUSINESS">Menú del negocio</mat-option>
                 @if (customSection) {
                   <mat-option [value]="customSection">{{ customSection }}</mat-option>
                 }
@@ -93,6 +94,8 @@ export interface AppMenuFormData {
               <input matInput formControlName="link" [placeholder]="form.getRawValue().section === 'TABS' ? '/navigation/home' : '/navigation/settings/metodo-de-pago'" autocomplete="off" />
               @if (form.getRawValue().section === 'TABS') {
                 <mat-hint>Barra inferior: una pantalla que ya exista en la app (/navigation/home, /navigation/quote...).</mat-hint>
+              } @else if (form.getRawValue().section === 'BUSINESS') {
+                <mat-hint>Menú del negocio: una acción (edit-profile, edit-address, settings, promotions, bonuses, payments) o una ruta (/navigation/...).</mat-hint>
               }
             </mat-form-field>
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -123,6 +126,7 @@ export interface AppMenuFormData {
         <section class="block">
           <div class="block-title"><span class="num">3</span> ¿Quién la ve? <small>Basta con cumplir una de estas opciones</small></div>
           <div class="grid">
+            @if (showRoleCodes) {
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="span-2">
               <mat-label>Tipo de usuario</mat-label>
               <mat-select formControlName="roles" multiple>
@@ -132,6 +136,7 @@ export interface AppMenuFormData {
               </mat-select>
               <mat-hint>Respeta el "Modo trabajo" de la app.</mat-hint>
             </mat-form-field>
+            }
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Roles (Gestión de Roles)</mat-label>
               <mat-select formControlName="roleIds" multiple>
@@ -234,6 +239,8 @@ export class AppMenuFormComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly isEdit = !!this.data.item;
+  /** Oculto: quién la ve se guarda por id (roles / roles de empleado) en menu_roles. */
+  protected readonly showRoleCodes = false;
   protected readonly saving = signal(false);
   protected readonly labelGroup = new FormGroup({});
   protected readonly users = signal<AppMenuUser[]>([...(this.data.item?.users ?? [])]);
@@ -247,7 +254,8 @@ export class AppMenuFormComponent {
     icon: [this.data.item?.icon ?? '', [Validators.required, Validators.maxLength(60)]],
     sortOrder: [this.data.item?.sortOrder ?? this.data.nextOrder ?? 0],
     roles: [this.data.item?.roles ?? ['USER'] as string[]],
-    roleIds: [this.data.item?.roleIds ?? [] as number[]],
+    // Nueva opción: por defecto la ve el rol USER.
+    roleIds: [this.data.item?.roleIds ?? this.data.targets.roles.filter((r) => r.role === 'USER').map((r) => r.id)],
     employeeRoleTypeIds: [this.data.item?.employeeRoleTypeIds ?? [] as number[]],
     labelKey: [this.data.item?.labelKey ?? '', [Validators.maxLength(120)]],
     isActive: [this.data.item?.isActive ?? true],
@@ -286,18 +294,18 @@ export class AppMenuFormComponent {
   }
 
   /** Seccion distinta de SETTINGS/TABS (creada a mano): se conserva en la lista. */
-  protected readonly customSection = ['SETTINGS', 'TABS'].includes(this.data.item?.section ?? this.data.section ?? 'SETTINGS')
+  protected readonly customSection = ['SETTINGS', 'TABS', 'BUSINESS'].includes(this.data.item?.section ?? this.data.section ?? 'SETTINGS')
     ? null
     : (this.data.item?.section ?? this.data.section ?? null);
 
   protected sectionHint(): string {
     const section = this.form.getRawValue().section;
-    return section === 'TABS' ? 'Barra inferior de la app.' : section === 'SETTINGS' ? 'Menú "Mi cuenta" de la app.' : `Menú ${section}.`;
+    return section === 'TABS' ? 'Barra inferior de la app.' : section === 'BUSINESS' ? 'Menú del negocio (botón ≡ del perfil del negocio).' : section === 'SETTINGS' ? 'Menú "Mi cuenta" de la app.' : `Menú ${section}.`;
   }
 
   protected noAudience(): boolean {
     const v = this.form.getRawValue();
-    return !(v.roles?.length || v.roleIds?.length || v.employeeRoleTypeIds?.length || this.users().length);
+    return !((this.showRoleCodes && v.roles?.length) || v.roleIds?.length || v.employeeRoleTypeIds?.length || this.users().length);
   }
 
   protected upper(name: 'code' | 'section'): void {
@@ -317,7 +325,7 @@ export class AppMenuFormComponent {
     const payload: SaveAppMenuItem = {
       link: v.link!.trim(),
       icon: v.icon!.trim(),
-      roles: v.roles ?? [],
+      ...(this.showRoleCodes ? { roles: v.roles ?? [] } : {}),
       roleIds: v.roleIds ?? [],
       employeeRoleTypeIds: v.employeeRoleTypeIds ?? [],
       userIds: this.users().map((u) => u.id),

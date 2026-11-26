@@ -187,6 +187,7 @@ export class AppMenuListComponent implements OnInit {
     if (name === 'SETTINGS') return 'Mi cuenta (SETTINGS)';
     if (name === 'TABS') return 'Barra inferior de la app (TABS)';
     if (name === 'BUSINESS') return 'Menú del negocio (BUSINESS)';
+    if (name === 'ACCOUNT') return 'Datos de la cuenta (ACCOUNT)';
     return name;
   }
 

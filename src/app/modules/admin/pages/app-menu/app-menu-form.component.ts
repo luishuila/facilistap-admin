@@ -76,6 +76,7 @@ export interface AppMenuFormData {
                 <mat-option value="SETTINGS">Mi cuenta</mat-option>
                 <mat-option value="TABS">Barra inferior</mat-option>
                 <mat-option value="BUSINESS">Menú del negocio</mat-option>
+                <mat-option value="ACCOUNT">Datos de la cuenta</mat-option>
                 @if (customSection) {
                   <mat-option [value]="customSection">{{ customSection }}</mat-option>
                 }
@@ -294,13 +295,13 @@ export class AppMenuFormComponent {
   }
 
   /** Seccion distinta de SETTINGS/TABS (creada a mano): se conserva en la lista. */
-  protected readonly customSection = ['SETTINGS', 'TABS', 'BUSINESS'].includes(this.data.item?.section ?? this.data.section ?? 'SETTINGS')
+  protected readonly customSection = ['SETTINGS', 'TABS', 'BUSINESS', 'ACCOUNT'].includes(this.data.item?.section ?? this.data.section ?? 'SETTINGS')
     ? null
     : (this.data.item?.section ?? this.data.section ?? null);
 
   protected sectionHint(): string {
     const section = this.form.getRawValue().section;
-    return section === 'TABS' ? 'Barra inferior de la app.' : section === 'BUSINESS' ? 'Menú del negocio (botón ≡ del perfil del negocio).' : section === 'SETTINGS' ? 'Menú "Mi cuenta" de la app.' : `Menú ${section}.`;
+    return section === 'TABS' ? 'Barra inferior de la app.' : section === 'BUSINESS' ? 'Menú del negocio (botón ≡ del perfil del negocio).' : section === 'ACCOUNT' ? 'Pantalla de datos de la cuenta (perfil, seguridad, preferencias). Las opciones fijas solo se prenden o apagan; Apple exige Eliminar cuenta visible en iPhone.' : section === 'SETTINGS' ? 'Menú "Mi cuenta" de la app.' : `Menú ${section}.`;
   }
 
   protected noAudience(): boolean {
